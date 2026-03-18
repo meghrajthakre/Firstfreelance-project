@@ -1,80 +1,80 @@
-@import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap');
+  @import "tailwindcss";
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap');
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   @theme — registers CSS variables as Tailwind design tokens.
-   This is what makes bg-(--color-primary), font-rajdhani, etc. work.
-   ───────────────────────────────────────────────────────────────────────────── */
-@theme {
-  /* Fonts */
-  --font-rajdhani: 'Rajdhani', sans-serif;
-  --font-nunito:   'Nunito',   sans-serif;
+  /* ─────────────────────────────────────────────────────────────────────────────
+    @theme — registers CSS variables as Tailwind design tokens.
+    This is what makes bg-(--color-primary), font-rajdhani, etc. work.
+    ───────────────────────────────────────────────────────────────────────────── */
+  @theme {
+    /* Fonts */
+    --font-rajdhani: 'Rajdhani', sans-serif;
+    --font-nunito:   'Nunito',   sans-serif;
 
-  /* Colors */
-  --color-primary:       #1E3A5F;   /* header bar              */
-  --color-primary-light: #2E5080;   /* slightly lighter navy   */
-  --color-banner:        #4B75B8;   /* announcement bar        */
-  --color-bg-main:       #E8EDF3;   /* page background         */
-  --color-bg-card:       #3A5F9A;   /* login card              */
-  --color-input-bg:      #FFFFFF;   /* input fields            */
-  --color-text-muted:    #D6E4F5;   /* text on dark bg         */
-  --color-text-dark:     #1A2B3C;   /* text on light bg        */
-  --color-border:        #CDD9E5;   /* input borders           */
-  --color-accent:        #90B4D4;   /* focus rings             */
-  --color-error:         #d23131;   /* error messages          */
-  --color-btn-bg:        #2B4A7A;   /* menu button fill        */
-  --color-btn-border:    #3A6298;   /* menu button border      */
-  --color-btn-hover:     #3558A0;   /* menu button hover       */
-}
+    /* Colors */
+    --color-primary:       #1E3A5F;   /* header bar              */
+    --color-primary-light: #2E5080;   /* slightly lighter navy   */
+    --color-banner:        #4B75B8;   /* announcement bar        */
+    --color-bg-main:       #E8EDF3;   /* page background         */
+    --color-bg-card:       #3A5F9A;   /* login card              */
+    --color-input-bg:      #FFFFFF;   /* input fields            */
+    --color-text-muted:    #D6E4F5;   /* text on dark bg         */
+    --color-text-dark:     #1A2B3C;   /* text on light bg        */
+    --color-border:        #CDD9E5;   /* input borders           */
+    --color-accent:        #90B4D4;   /* focus rings             */
+    --color-error:         #d23131;   /* error messages          */
+    --color-btn-bg:        #2B4A7A;   /* menu button fill        */
+    --color-btn-border:    #3A6298;   /* menu button border      */
+    --color-btn-hover:     #3558A0;   /* menu button hover       */
+  }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Keyframes — must live in CSS, not in tailwind.config.js for Tailwind v4
-   ───────────────────────────────────────────────────────────────────────────── */
-@keyframes marquee {
-  from { transform: translateX(100vw);  }
-  to   { transform: translateX(-100%); }
-}
+  /* ─────────────────────────────────────────────────────────────────────────────
+    Keyframes — must live in CSS, not in tailwind.config.js for Tailwind v4
+    ───────────────────────────────────────────────────────────────────────────── */
+  @keyframes marquee {
+    from { transform: translateX(100vw);  }
+    to   { transform: translateX(-100%); }
+  }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(28px); }
-  to   { opacity: 1; transform: translateY(0);    }
-}
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   @utility — registers custom animation classes so Tailwind v4 recognises
-   `animate-marquee`, `animate-fade-up`, `animate-slide-up` as utilities.
-   ───────────────────────────────────────────────────────────────────────────── */
-@utility animate-marquee {
-  animation: marquee 30s linear infinite;
-}
+  /* ─────────────────────────────────────────────────────────────────────────────
+    @utility — registers custom animation classes so Tailwind v4 recognises
+    `animate-marquee`, `animate-fade-up`, `animate-slide-up` as utilities.
+    ───────────────────────────────────────────────────────────────────────────── */
+  @utility animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
 
-@utility animate-fade-up {
-  animation: fadeUp 0.35s ease forwards;
-}
+  @utility animate-fade-up {
+    animation: fadeUp 0.35s ease forwards;
+  }
 
-@utility animate-slide-up {
-  animation: slideUp 0.4s ease forwards;
-}
+  @utility animate-slide-up {
+    animation: slideUp 0.4s ease forwards;
+  }
 
 
 
-body {
-  font-family: 'Nunito', sans-serif;
-  background-color: var(--color-bg-main);
-  color: var(--color-text-dark);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    font-family: 'Nunito', sans-serif;
+    background-color: var(--color-bg-main);
+    color: var(--color-text-dark);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Scrollbar
-   ───────────────────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar        { width: 6px; }
-::-webkit-scrollbar-track  { background: var(--color-bg-main); }
-::-webkit-scrollbar-thumb  { background: var(--color-accent); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-banner); }
+  /* ─────────────────────────────────────────────────────────────────────────────
+    Scrollbar
+    ───────────────────────────────────────────────────────────────────────────── */
+  ::-webkit-scrollbar        { width: 6px; }
+  ::-webkit-scrollbar-track  { background: var(--color-bg-main); }
+  ::-webkit-scrollbar-thumb  { background: var(--color-accent); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-banner); }
