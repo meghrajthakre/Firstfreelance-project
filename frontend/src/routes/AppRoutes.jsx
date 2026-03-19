@@ -15,26 +15,17 @@ const AppRoutes = () => {
         <BrowserRouter>
 
             <Routes>
-
                 {/* Public */}
                 <Route path="/" element={<LoginPage />} />
-
                 {/* Protected layout */}
                 <Route element={<MainLayout />}>
-
                     <Route path="/dashboard" element={<UserDashboard />} />
                     <Route element={<DashboardLayout />}>
-
                         {DashboardRoutes()}
-
                     </Route>
-
                 </Route>
-
             </Routes>
-
             <Footer />
-
         </BrowserRouter>
 
     )

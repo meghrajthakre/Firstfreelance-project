@@ -10,9 +10,7 @@ const DashboardLayout = () => {
 
         <div>
 
-            <Navbar />
-
-            <MarqueeBanner />
+           
 
             <div className="pt-[120px] min-h-screen">
 
