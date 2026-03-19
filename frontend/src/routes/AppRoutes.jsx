@@ -9,6 +9,7 @@ import MainLayout from '../layout/MainLayout'
 import DashboardRoutes from './DashboardRoutes'
 import DashboardLayout from '../layout/DashboardLayout'
 import NotFound from '../pages/NotFound'
+import HomePage from '../pages/HomePage'
 
 const AppRoutes = () => {
     return (
@@ -17,7 +18,8 @@ const AppRoutes = () => {
 
             <Routes>
                 {/* Public */}
-                <Route path="/" element={<LoginPage />} />
+                <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
                 {/* Protected layout */}
                 <Route element={<MainLayout />}>
                     <Route path="/dashboard" element={<UserDashboard />} />
@@ -27,7 +29,6 @@ const AppRoutes = () => {
                 </Route>
                 <Route path="*" element={<NotFound />} />
             </Routes>
-            <Footer />
         </BrowserRouter>
 
     )
