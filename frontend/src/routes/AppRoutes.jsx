@@ -8,6 +8,7 @@ import Footer from '../pages/Footer'
 import MainLayout from '../layout/MainLayout'
 import DashboardRoutes from './DashboardRoutes'
 import DashboardLayout from '../layout/DashboardLayout'
+import NotFound from '../pages/NotFound'
 
 const AppRoutes = () => {
     return (
@@ -24,6 +25,7 @@ const AppRoutes = () => {
                         {DashboardRoutes()}
                     </Route>
                 </Route>
+                <Route path="*" element={<NotFound />} />
             </Routes>
             <Footer />
         </BrowserRouter>

@@ -1,27 +1,40 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCoinStore } from '../store/coinStore';
 
 const NAV_ITEMS = [
-  { key: 'dashboard', label: 'HOME',       icon: 'ri-home-4-line'    },
-  { key: 'live',      label: 'LIVE MATCH', icon: 'ri-broadcast-line' },
-  { key: 'logout',    label: 'LOGOUT',     icon: 'ri-shut-down-line' },
+  { key: 'dashboard', label: 'HOME', icon: 'ri-home-4-line', path: '/dashboard' },
+  { key: 'live', label: 'LIVE MATCH', icon: 'ri-broadcast-line', path: '/dashboard/live' },
+  { key: 'logout', label: 'LOGOUT', icon: 'ri-shut-down-line', path: null }, // logout has no path
 ];
 
-const Navbar = ({ activePage, go }) => {
+const Navbar = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const coins = useCoinStore((state) => state.coins);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const username = user?.username ?? 'Guest';
 
-  const handleNavClick = (key) => {
+  // Determine active key based on current path
+  const getActiveKey = () => {
+    const path = location.pathname;
+    if (path === '/dashboard') return 'dashboard';
+    if (path === '/dashboard/live') return 'live';
+    // Default to dashboard if unknown
+    return 'dashboard';
+  };
+
+  const activeKey = getActiveKey();
+
+  const handleNavClick = (key, path) => {
     if (key === 'logout') {
       logout();
-      // Optionally redirect after logout
-      // go('login');
-    } else {
-      go(key);
+      navigate('/');
+    } else if (path) {
+      navigate(path);
     }
   };
 
@@ -34,7 +47,6 @@ const Navbar = ({ activePage, go }) => {
       flex items-center justify-between
       px-2 sm:px-5
     ">
-
       {/* User info – responsive truncation */}
       <div className="
         text-(--color-text-muted) leading-tight font-nunito
@@ -51,15 +63,15 @@ const Navbar = ({ activePage, go }) => {
         </p>
       </div>
 
-      {/* Navigation – improved touch targets and active state */}
+      {/* Navigation */}
       <nav className="flex items-center gap-0.5 sm:gap-2">
-        {NAV_ITEMS.map(({ key, label, icon }) => {
-          const isActive = activePage === key && key !== 'logout';
+        {NAV_ITEMS.map(({ key, label, icon, path }) => {
+          const isActive = activeKey === key && key !== 'logout';
 
           return (
             <button
               key={key}
-              onClick={() => handleNavClick(key)}
+              onClick={() => handleNavClick(key, path)}
               className={`
                 relative flex items-center justify-center
                 gap-1 sm:gap-2
@@ -70,7 +82,7 @@ const Navbar = ({ activePage, go }) => {
                 text-(--color-text-muted)
                 transition-all duration-150
                 cursor-pointer
-                min-w-[40px] sm:min-w-0  // ensure minimum touch area on mobile
+                min-w-[40px] sm:min-w-0
                 ${isActive
                   ? 'border border-[rgba(214,228,245,0.65)] bg-[rgba(255,255,255,0.12)] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-1/2 after:h-0.5 after:bg-(--color-accent) after:rounded-full'
                   : 'border border-transparent bg-transparent hover:bg-[rgba(255,255,255,0.12)]'
@@ -78,9 +90,7 @@ const Navbar = ({ activePage, go }) => {
               `}
             >
               <i className={`${icon} text-base sm:text-lg`} />
-              <span className="hidden sm:inline">
-                {label}
-              </span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
           );
         })}
