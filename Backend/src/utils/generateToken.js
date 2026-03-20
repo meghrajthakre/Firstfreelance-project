@@ -15,29 +15,11 @@ const generateAccessToken = (payload) =>
     audience: "betting-dashboard-client",
   });
 
-/**
- * Generate a long-lived refresh token.
- * @param {{ id: string, role: string }} payload
- */
-const generateRefreshToken = (payload) =>
-  jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
-    issuer: "betting-dashboard",
-    audience: "betting-dashboard-client",
-  });
-
 // ── Token verification ────────────────────────────────────────────────────────
 
 /** @throws {jwt.TokenExpiredError | jwt.JsonWebTokenError} */
 const verifyAccessToken = (token) =>
   jwt.verify(token, process.env.JWT_ACCESS_SECRET, {
-    issuer: "betting-dashboard",
-    audience: "betting-dashboard-client",
-  });
-
-/** @throws {jwt.TokenExpiredError | jwt.JsonWebTokenError} */
-const verifyRefreshToken = (token) =>
-  jwt.verify(token, process.env.JWT_REFRESH_SECRET, {
     issuer: "betting-dashboard",
     audience: "betting-dashboard-client",
   });
@@ -51,37 +33,23 @@ const accessCookieOptions = () => ({
   httpOnly: true,
   secure: IS_PROD(),
   sameSite: IS_PROD() ? "strict" : "lax",
-  maxAge: 30 * 60 * 1000, // 15 min
+  maxAge: 60 * 60 * 1000, // 60 min
   path: "/",
 });
 
-/** httpOnly cookie options for refresh token — path-scoped to /auth/refresh */
-const refreshCookieOptions = () => ({
-  httpOnly: true,
-  secure: IS_PROD(),
-  sameSite: IS_PROD() ? "strict" : "lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  path: "/auth/refresh",
-});
-
-/** Attach both tokens as httpOnly cookies to the response */
-const setAuthCookies = (res, accessToken, refreshToken) => {
+/** Attach access token as httpOnly cookie to the response */
+const setAuthCookies = (res, accessToken) => {
   res.cookie("accessToken", accessToken, accessCookieOptions());
-  res.cookie("refreshToken", refreshToken, refreshCookieOptions());
 };
 
-/** Clear both auth cookies */
+/** Clear access token cookie */
 const clearAuthCookies = (res) => {
-  const base = { httpOnly: true, secure: IS_PROD() };
-  res.clearCookie("accessToken", { ...base, path: "/" });
-  res.clearCookie("refreshToken", { ...base, path: "/auth/refresh" });
+  res.clearCookie("accessToken", { httpOnly: true, secure: IS_PROD(), path: "/" });
 };
 
 module.exports = {
   generateAccessToken,
-  generateRefreshToken,
   verifyAccessToken,
-  verifyRefreshToken,
   setAuthCookies,
   clearAuthCookies,
 };

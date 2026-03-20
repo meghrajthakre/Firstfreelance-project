@@ -1,7 +1,7 @@
 "use strict";
 
 const { Router } = require("express");
-const { login, logout, refresh, getMe } = require("../controllers/authController");
+const { login, logout, getMe } = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
 const { validateBody, loginSchema } = require("../utils/validators");
 
@@ -20,12 +20,6 @@ router.post("/login", validateBody(loginSchema), login);
  */
 router.post("/logout", protect, logout);
 
-/**
- * POST /auth/refresh
- * Uses the refreshToken httpOnly cookie to issue a new access token (+ rotated refresh token).
- * No protect middleware here — the refresh token IS the credential.
- */
-router.post("/refresh", refresh);
 
 /**
  * GET /auth/me

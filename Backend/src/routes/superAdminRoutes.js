@@ -1,48 +1,45 @@
-"use strict";
-
 const { Router } = require("express");
 const {
+  createMaster,
   createAdmin,
+  createUser,
+  getMasters,
   getAdmins,
-  addCoinsToAdmin,
+  getUsers,
+  addCoins,
   toggleBlock,
+  deleteUser,
 } = require("../controllers/superAdminController");
 const { protect } = require("../middleware/authMiddleware");
-const { superAdminOnly } = require("../middleware/roleMiddleware");
+const { superAdminOnly } = require("../middleware/authorize");
 const {
   validateBody,
   validateQuery,
   createAdminSchema,
+  createUserSchema,
   addCoinsSchema,
   paginationSchema,
 } = require("../utils/validators");
 
 const router = Router();
 
-// Every route in this file requires: valid JWT + superadmin role
 router.use(protect, superAdminOnly);
 
-/**
- * POST /superadmin/create-admin
- * Body: { username, password }
- */
-router.post("/create-admin", validateBody(createAdminSchema), createAdmin);
+// ── Create ────────────────────────────────────────────────────────────────────
+router.post("/masters", validateBody(createAdminSchema), createMaster);
+router.post("/admins",  validateBody(createAdminSchema), createAdmin);
+router.post("/users",   validateBody(createUserSchema),  createUser);
 
-/**
- * GET /superadmin/admins?page=1&limit=10
- */
-router.get("/admins", validateQuery(paginationSchema), getAdmins);
+// ── List ──────────────────────────────────────────────────────────────────────
+router.get("/masters", validateQuery(paginationSchema), getMasters);
+router.get("/admins",  validateQuery(paginationSchema), getAdmins);
+router.get("/users",   validateQuery(paginationSchema), getUsers);
 
-/**
- * PATCH /superadmin/add-coins/:adminId
- * Body: { amount, reason }
- */
-router.patch("/add-coins/:adminId", validateBody(addCoinsSchema), addCoinsToAdmin);
+// ── Coins ─────────────────────────────────────────────────────────────────────
+router.patch("/add-coins/:userId", validateBody(addCoinsSchema), addCoins);
 
-/**
- * PATCH /superadmin/block/:id
- * Toggles isActive on any non-superadmin account
- */
-router.patch("/block/:id", toggleBlock);
+// ── Manage ────────────────────────────────────────────────────────────────────
+router.patch("/toggle-block/:id", toggleBlock);
+router.delete("/:id",             deleteUser);
 
 module.exports = router;

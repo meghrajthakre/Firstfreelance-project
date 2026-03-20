@@ -1,8 +1,11 @@
-const mongoose = require("mongoose");
+"use strict";
 
-/** Role constants — single source of truth */
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+
 const ROLES = Object.freeze({
   SUPERADMIN: "superadmin",
+  MASTER: "master",
   ADMIN: "admin",
   USER: "user",
 });
@@ -23,14 +26,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: [4, "Password must be at least 4 characters"],
-      select: false, // never returned by default
+      select: false,
     },
 
     role: {
       type: String,
       enum: {
         values: Object.values(ROLES),
-        message: "Role must be superadmin, admin, or user",
+        message: "Role must be superadmin, master, admin, or user",
       },
       default: ROLES.USER,
     },
@@ -57,13 +60,6 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-
-    /** Stored hashed refresh token for rotation + reuse detection */
-    refreshTokenHash: {
-      type: String,
-      select: false,
-      default: null,
-    },
   },
   {
     timestamps: true,
@@ -71,7 +67,6 @@ const userSchema = new mongoose.Schema(
       virtuals: false,
       transform(_doc, ret) {
         delete ret.password;
-        delete ret.refreshTokenHash;
         delete ret.__v;
         return ret;
       },
@@ -79,33 +74,23 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// ── Compound indexes ─────────────────────────────────────────────────────────
-userSchema.index({ role: 1, isActive: 1 });
+// ── Compound indexes
 userSchema.index({ createdBy: 1, role: 1 });
 
-// ── Pre-save: hash password only when modified ───────────────────────────────
+// ── Pre-save: hash password only when modified 
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
-
-  const bcrypt = require("bcryptjs");
   this.password = await bcrypt.hash(this.password, 10);
 });
 
-// ── Instance methods ─────────────────────────────────────────────────────────
+// ── Instance methods 
 userSchema.methods.comparePassword = function (plaintext) {
   return bcrypt.compare(plaintext, this.password);
 };
 
-userSchema.methods.compareRefreshToken = function (plaintext) {
-  if (!this.refreshTokenHash) return Promise.resolve(false);
-  return bcrypt.compare(plaintext, this.refreshTokenHash);
-};
-
-// ── Static helpers ───────────────────────────────────────────────────────────
+// ── Static helpers 
 userSchema.statics.findByUsername = function (username) {
-  return this.findOne({ username: username.toLowerCase().trim() }).select(
-    "+password +refreshTokenHash"
-  );
+  return this.findOne({ username: username.toLowerCase().trim() }).select("+password");
 };
 
 const User = mongoose.model("User", userSchema);
