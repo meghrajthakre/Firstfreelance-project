@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 
 /** Role constants — single source of truth */
 const ROLES = Object.freeze({
@@ -13,15 +12,10 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: [true, "Username is required"],
-      unique: true,
       trim: true,
       lowercase: true,
       minlength: [3, "Username must be at least 3 characters"],
       maxlength: [30, "Username cannot exceed 30 characters"],
-      match: [
-        /^[a-zA-Z0-9_]+$/,
-        "Username may only contain letters, numbers, and underscores",
-      ],
       index: true,
     },
 
@@ -90,11 +84,11 @@ userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ createdBy: 1, role: 1 });
 
 // ── Pre-save: hash password only when modified ───────────────────────────────
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
+  const bcrypt = require("bcryptjs");
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
 // ── Instance methods ─────────────────────────────────────────────────────────

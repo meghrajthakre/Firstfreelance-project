@@ -1,16 +1,3 @@
-#!/usr/bin/env node
-"use strict";
-
-/**
- * Seed Script — Bootstrap the first superadmin account.
- *
- * Usage:
- *   npm run seed
- *
- * Override defaults via env vars:
- *   SUPERADMIN_USERNAME=boss SUPERADMIN_PASSWORD=MyStr0ng!Pass npm run seed
- */
-
 require("dotenv").config();
 const connectDB = require("../config/db");
 const { User, ROLES } = require("../models/User");

@@ -89,7 +89,7 @@ const start = async () => {
       console.log("╔══════════════════════════════════════════╗");
       console.log("║      Betting Dashboard API               ║");
       console.log("╠══════════════════════════════════════════╣");
-      console.log(`║  🚀  http://localhost:${PORT}            ║`);
+      console.log(`║  🚀  http://localhost:${PORT}               ║`);
       console.log(`║  🌍  ${NODE_ENV.padEnd(36)}║`);
       console.log("╚══════════════════════════════════════════╝");
       console.log("");
