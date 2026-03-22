@@ -14,6 +14,7 @@ const authRoutes = require("./src/routes/authRoutes");
 const superAdminRoutes = require("./src/routes/superAdminRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
 const userRoutes = require("./src/routes/userRoutes");
+const masterRoutes = require("./src/routes/masterRoutes");
 
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
@@ -48,6 +49,7 @@ app.use(cookieParser());
 
 
 
+
 /** Global limiter — all routes */
 const globalLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
@@ -70,10 +72,15 @@ app.get("/health", (_req, res) =>
 );
 
 // ── API Routes ────────────────────────────────────────────────────────────────
-app.use("/auth", authRoutes);
-app.use("/superadmin", superAdminRoutes);
-app.use("/admin", adminRoutes);
-app.use("/user", userRoutes);
+app.use(cookieParser());
+app.use(globalLimiter);
+
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/superadmin", superAdminRoutes);
+app.use("/api/master", masterRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/user", userRoutes);
 
 // ── 404 + global error handler (must be last) ─────────────────────────────────
 app.use(notFound);

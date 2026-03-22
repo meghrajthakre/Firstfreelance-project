@@ -1,3 +1,5 @@
+"use strict";
+
 const { Router } = require("express");
 const {
   createMaster,
@@ -14,11 +16,9 @@ const { protect } = require("../middleware/authMiddleware");
 const { superAdminOnly } = require("../middleware/roleMiddleware");
 const {
   validateBody,
-  validateQuery,
   createAdminSchema,
   createUserSchema,
   addCoinsSchema,
-  paginationSchema,
 } = require("../utils/validators");
 
 const router = Router();
@@ -31,9 +31,9 @@ router.post("/admins",  validateBody(createAdminSchema), createAdmin);
 router.post("/users",   validateBody(createUserSchema),  createUser);
 
 // ── List ──────────────────────────────────────────────────────────────────────
-router.get("/masters", validateQuery(paginationSchema), getMasters);
-router.get("/admins",  validateQuery(paginationSchema), getAdmins);
-router.get("/users",   validateQuery(paginationSchema), getUsers);
+router.get("/masters", getMasters);
+router.get("/admins",  getAdmins);
+router.get("/users",   getUsers);
 
 // ── Coins ─────────────────────────────────────────────────────────────────────
 router.patch("/add-coins/:userId", validateBody(addCoinsSchema), addCoins);

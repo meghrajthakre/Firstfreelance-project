@@ -73,18 +73,18 @@ const paginationSchema = z.object({
  * Attaches parsed data to req.body (mutates in-place for cleaner controller code).
  */
 const validateBody = (schema) => (req, res, next) => {
-  const result = schema.safeParse(req.body);
+  const result = schema.safeParse(req.body ?? {});
   if (!result.success) {
     return res.status(400).json({
       success: false,
       message: "Validation failed",
-      errors: result.error.errors.map((e) => ({
+      errors: result.error?.errors?.map((e) => ({
         field: e.path.join(".") || "body",
         message: e.message,
-      })),
+      })) ?? [],
     });
   }
-  req.body = result.data; // replace with parsed/transformed data
+  req.body = result.data;
   next();
 };
 
