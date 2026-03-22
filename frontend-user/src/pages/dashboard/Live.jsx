@@ -1,24 +1,30 @@
 import { useState } from "react";
-import { GiCricket, GiSoccerBall, GiTennisBall, GiPerson, GiVote, GiTrophyCup } from "react-icons/gi";
-import { 
-  CricketIcon, 
- 
-} from "@phosphor-icons/react"; 
+import {
+  MdSportsCricket,
+  MdSportsFootball,
+  MdSportsTennis,
+  MdEmojiEvents,
+  MdHowToVote,
+  MdChevronRight,
+  MdAccessTime,
+} from "react-icons/md";
+// import { GiWrestler } from "react-icons/gi";
+import { IoTrophyOutline } from "react-icons/io5";
 
 const SPORTS = [
-  { id: "cricket",    label: "CRICKET",    icon: <CricketIcon  size={18} /> },
-  { id: "football",   label: "FOOTBALL",   icon: <GiSoccerBall size={18} /> },
-  { id: "tennis",     label: "TENNIS",     icon: <GiTennisBall size={18} /> },
-  { id: "kabaddi",    label: "KABADDI",    icon: <GiPerson     size={18} /> },
-  { id: "elections",  label: "ELECTIONS",  icon: <GiVote       size={18} /> },
-  { id: "tournament", label: "TOURNAMENT", icon: <GiTrophyCup  size={18} /> },
+  { id: "cricket",    label: "Cricket",    Icon: MdSportsCricket },
+  { id: "football",   label: "Football",   Icon: MdSportsFootball },
+  { id: "tennis",     label: "Tennis",     Icon: MdSportsTennis },
+  { id: "kabaddi",    label: "Kabaddi",    Icon: MdSportsTennis },
+  { id: "elections",  label: "Elections",  Icon: MdHowToVote },
+  { id: "tournament", label: "Tournament", Icon: MdEmojiEvents },
 ];
 
 const MATCHES = {
   cricket: [
     {
       id: 1,
-      title: "NEW ZEALAND VS SOUTH AFRICA",
+      title: "New Zealand vs South Africa",
       subtitle: "4th T20I",
       matchBets: 0,
       sessionBets: 0,
@@ -28,7 +34,7 @@ const MATCHES = {
     },
     {
       id: 2,
-      title: "INDIA VS AUSTRALIA",
+      title: "India vs Australia",
       subtitle: "3rd ODI",
       matchBets: 12,
       sessionBets: 5,
@@ -36,11 +42,21 @@ const MATCHES = {
       month: "March",
       time: "02:30 PM",
     },
+    {
+      id: 3,
+      title: "England vs West Indies",
+      subtitle: "1st Test",
+      matchBets: 4,
+      sessionBets: 2,
+      day: "23",
+      month: "March",
+      time: "09:30 AM",
+    },
   ],
   football: [
     {
-      id: 3,
-      title: "MANCHESTER UNITED VS CHELSEA",
+      id: 4,
+      title: "Manchester United vs Chelsea",
       subtitle: "Premier League",
       matchBets: 8,
       sessionBets: 3,
@@ -55,146 +71,357 @@ const MATCHES = {
   tournament: [],
 };
 
+function groupByDate(matches) {
+  const groups = {};
+  matches.forEach((m) => {
+    const key = `${m.day} ${m.month}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(m);
+  });
+  return groups;
+}
+
 const Live = () => {
   const [active, setActive] = useState("cricket");
+  const [hoveredId, setHoveredId] = useState(null);
   const matches = MATCHES[active] ?? [];
   const activeSport = SPORTS.find((s) => s.id === active);
+  const grouped = groupByDate(matches);
 
   return (
     <div
-      className="min-h-screen px-3 sm:px-6 py-6"
-      style={{ backgroundColor: "var(--color-bg-main)" }}
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "var(--color-bg-main)",
+        fontFamily: "var(--font-nunito)",
+      }}
     >
-      {/* ── Sport tabs ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
-        {SPORTS.map((sport) => {
-          const isActive = active === sport.id;
-          return (
-            <button
-              key={sport.id}
-              onClick={() => setActive(sport.id)}
-              className="flex items-center gap-2 px-3 sm:px-5 py-2 rounded font-rajdhani font-semibold text-sm sm:text-base tracking-wide transition-all duration-200 cursor-pointer"
-              style={
-                isActive
-                  ? {
-                      backgroundColor: "var(--color-input-bg)",
-                      color: "var(--color-primary)",
-                      border: "1.5px solid var(--color-border)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-                    }
-                  : {
-                      backgroundColor: "var(--color-btn-bg)",
-                      color: "var(--color-text-muted)",
-                      border: "1.5px solid var(--color-btn-border)",
-                    }
-              }
-            >
-              {sport.icon}
-              <span>{sport.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ── Match list ─────────────────────────────────────────────────────── */}
-      {matches.length === 0 ? (
+      {/* ── Sport tabs ── */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          backgroundColor: "var(--color-input-bg)",
+          borderBottom: "1px solid var(--color-border)",
+        }}
+      >
         <div
-          className="rounded-lg py-16 flex flex-col items-center gap-3"
           style={{
-            backgroundColor: "var(--color-input-bg)",
-            border: "1px solid var(--color-border)",
+            display: "flex",
+            overflowX: "auto",
+            padding: "6px 10px",
+            gap: "4px",
+            scrollbarWidth: "none",
+            WebkitOverflowScrolling: "touch",
           }}
         >
-          <GiTrophyCup size={48} style={{ color: "var(--color-accent)" }} />
-          <p
-            className="font-rajdhani font-semibold text-lg tracking-wide"
-            style={{ color: "var(--color-primary)" }}
-          >
-            No matches available
-          </p>
+          {SPORTS.map(({ id, label, Icon }) => {
+            const isActive = active === id;
+            return (
+              <button
+                key={id}
+                onClick={() => setActive(id)}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "3px",
+                  padding: "8px 14px 6px",
+                  borderRadius: "12px",
+                  border: "none",
+                  backgroundColor: isActive
+                    ? "var(--color-primary)"
+                    : "transparent",
+                  color: isActive
+                    ? "var(--color-input-bg)"
+                    : "var(--color-accent)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  transition: "background 0.18s, color 0.18s",
+                  outline: "none",
+                }}
+              >
+                <Icon size={22} />
+                <span
+                  style={{
+                    fontFamily: "var(--font-rajdhani)",
+                    fontWeight: "700",
+                    fontSize: "10px",
+                    letterSpacing: "0.6px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {label}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {matches.map((match) => (
+      </div>
+
+      {/* ── Match list ── */}
+      <div style={{ padding: "16px 12px", display: "flex", flexDirection: "column", gap: "20px" }}>
+        {matches.length === 0 ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "64px 24px",
+              gap: "12px",
+            }}
+          >
             <div
-              key={match.id}
-              className="rounded-lg overflow-hidden flex flex-col sm:flex-row cursor-pointer transition-transform duration-150 hover:-translate-y-0.5"
               style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
                 backgroundColor: "var(--color-input-bg)",
                 border: "1px solid var(--color-border)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              {/* Sport icon panel */}
-              <div
-                className="flex items-center justify-center w-full sm:w-20 h-16 sm:h-auto shrink-0"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                <span className="text-white text-2xl">
-                  {activeSport?.icon}
-                </span>
-              </div>
-
-              {/* Match info */}
-              <div className="flex-1 px-4 py-3 flex flex-col justify-center gap-1">
-                <h3
-                  className="font-rajdhani font-bold text-base sm:text-lg leading-tight tracking-wide"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  {match.title}
-                </h3>
-                <p
-                  className="font-nunito text-sm"
-                  style={{ color: "var(--color-text-dark)", opacity: 0.7 }}
-                >
-                  {match.subtitle}
-                </p>
-                <div className="flex gap-4 mt-1">
-                  <span
-                    className="font-nunito text-xs"
-                    style={{ color: "var(--color-text-dark)", opacity: 0.65 }}
-                  >
-                    Match Bets : {match.matchBets}
-                  </span>
-                  <span
-                    className="font-nunito text-xs"
-                    style={{ color: "var(--color-text-dark)", opacity: 0.65 }}
-                  >
-                    Session Bets : {match.sessionBets}
-                  </span>
-                </div>
-              </div>
-
-              {/* Date box */}
-              <div
-                className="flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-0 px-4 sm:px-6 py-3 sm:py-0 sm:min-w-[100px]"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                <span
-                  className="font-rajdhani font-bold text-2xl sm:text-3xl leading-none"
-                  style={{ color: "var(--color-input-bg)" }}
-                >
-                  {match.day}
-                </span>
-                <span
-                  className="font-rajdhani font-semibold text-sm sm:text-base"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  {match.month}
-                </span>
-                <span
-                  className="font-nunito text-xs sm:text-sm"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  {match.time}
-                </span>
-              </div>
+              <IoTrophyOutline size={28} style={{ color: "var(--color-accent)", opacity: 0.5 }} />
             </div>
-          ))}
-        </div>
-      )}
+            <p
+              style={{
+                margin: 0,
+                fontFamily: "var(--font-rajdhani)",
+                fontWeight: "700",
+                fontSize: "15px",
+                letterSpacing: "0.3px",
+                color: "var(--color-text-dark)",
+                opacity: 0.45,
+              }}
+            >
+              No matches available
+            </p>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "12px",
+                color: "var(--color-text-dark)",
+                opacity: 0.35,
+              }}
+            >
+              Check back later for upcoming games
+            </p>
+          </div>
+        ) : (
+          Object.entries(grouped).map(([dateLabel, groupMatches]) => (
+            <div key={dateLabel} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+
+              {/* Date divider */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-rajdhani)",
+                    fontWeight: "700",
+                    fontSize: "11px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                    color: "var(--color-primary)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {dateLabel}
+                </span>
+                <span
+                  style={{
+                    flex: 1,
+                    height: "1px",
+                    backgroundColor: "var(--color-border)",
+                  }}
+                />
+              </div>
+
+              {/* Cards */}
+              {groupMatches.map((match) => {
+                const isHovered = hoveredId === match.id;
+                const ActiveIcon = activeSport?.Icon;
+                return (
+                  <div
+                    key={match.id}
+                    onMouseEnter={() => setHoveredId(match.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    style={{
+                      backgroundColor: "var(--color-input-bg)",
+                      borderRadius: "14px",
+                      border: `1px solid ${isHovered ? "var(--color-primary)" : "var(--color-border)"}`,
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      transition: "border-color 0.18s, transform 0.15s",
+                      transform: isHovered ? "translateY(-2px)" : "translateY(0)",
+                    }}
+                  >
+                    {/* Top accent bar on hover */}
+                    <div
+                      style={{
+                        height: "3px",
+                        backgroundColor: "var(--color-primary)",
+                        transform: isHovered ? "scaleX(1)" : "scaleX(0)",
+                        transformOrigin: "left",
+                        transition: "transform 0.25s ease",
+                      }}
+                    />
+
+                    <div style={{ padding: "14px 16px" }}>
+                      {/* Row 1: icon + subtitle + time */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          {/* Sport icon in a pill */}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "8px",
+                              backgroundColor: "var(--color-primary)",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {ActiveIcon && (
+                              <ActiveIcon size={18} style={{ color: "var(--color-text-muted)" }} />
+                            )}
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              fontWeight: "600",
+                              color: "var(--color-text-dark)",
+                              opacity: 0.5,
+                              fontFamily: "var(--font-nunito)",
+                            }}
+                          >
+                            {match.subtitle}
+                          </span>
+                        </div>
+
+                        {/* Time badge */}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            padding: "3px 8px",
+                            borderRadius: "20px",
+                            backgroundColor: "var(--color-bg-main)",
+                            border: "1px solid var(--color-border)",
+                          }}
+                        >
+                          <MdAccessTime size={12} style={{ color: "var(--color-primary)", opacity: 0.8 }} />
+                          <span
+                            style={{
+                              fontFamily: "var(--font-rajdhani)",
+                              fontWeight: "700",
+                              fontSize: "11px",
+                              color: "var(--color-primary)",
+                              letterSpacing: "0.4px",
+                            }}
+                          >
+                            {match.time}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Row 2: match title */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        <h3
+                          style={{
+                            margin: 0,
+                            fontFamily: "var(--font-rajdhani)",
+                            fontWeight: "700",
+                            fontSize: "15px",
+                            letterSpacing: "0.2px",
+                            color: "var(--color-text-dark)",
+                            lineHeight: "1.3",
+                          }}
+                        >
+                          {match.title}
+                        </h3>
+                        <MdChevronRight
+                          size={20}
+                          style={{
+                            color: "var(--color-accent)",
+                            flexShrink: 0,
+                            marginLeft: "8px",
+                            transition: "transform 0.15s",
+                            transform: isHovered ? "translateX(3px)" : "translateX(0)",
+                          }}
+                        />
+                      </div>
+
+                      {/* Row 3: bet pills */}
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <BetPill label="Match Bets" value={match.matchBets} />
+                        <BetPill label="Session Bets" value={match.sessionBets} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
+
+const BetPill = ({ label, value }) => (
+  <div
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "4px 10px",
+      borderRadius: "6px",
+      backgroundColor: "var(--color-bg-main)",
+      border: "1px solid var(--color-border)",
+    }}
+  >
+    <span
+      style={{
+        fontSize: "11px",
+        color: "var(--color-text-dark)",
+        opacity: 0.55,
+        fontFamily: "var(--font-nunito)",
+      }}
+    >
+      {label}
+    </span>
+    <span
+      style={{
+        fontSize: "12px",
+        fontWeight: "700",
+        color: "var(--color-primary)",
+        fontFamily: "var(--font-rajdhani)",
+      }}
+    >
+      {value}
+    </span>
+  </div>
+);
 
 export default Live;

@@ -68,7 +68,7 @@
     background-color: var(--color-bg-main);
     color: var(--color-text-dark);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;z
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* ─────────────────────────────────────────────────────────────────────────────
