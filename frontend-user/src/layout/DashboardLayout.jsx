@@ -12,7 +12,7 @@ const DashboardLayout = () => {
 
            
 
-            <div className="pt-[120px] min-h-screen">
+            <div className="pt-[120px] min-h-[100dvh]">
 
                 <Outlet />
 
