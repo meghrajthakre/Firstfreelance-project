@@ -61,11 +61,7 @@
     animation: slideUp 0.4s ease forwards;
   }
 
-*{
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+
 
   body {
     font-family: 'Nunito', sans-serif;
@@ -73,6 +69,8 @@
     color: var(--color-text-dark);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
   }
 
   /* ─────────────────────────────────────────────────────────────────────────────
