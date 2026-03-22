@@ -14,7 +14,7 @@ const SPORTS = [
   { id: "cricket",    label: "Cricket",    Icon: MdSportsCricket },
   { id: "football",   label: "Football",   Icon: MdSportsFootball },
   { id: "tennis",     label: "Tennis",     Icon: MdSportsTennis },
-  { id: "kabaddi",    label: "Kabaddi",    Icon: MdSportsCricket },
+  { id: "kabaddi",    label: "Kabaddi",    Icon:  MdSportsCricket},
   { id: "elections",  label: "Elections",  Icon: MdHowToVote },
   { id: "tournament", label: "Tournament", Icon: MdEmojiEvents },
 ];
@@ -80,9 +80,209 @@ function groupByDate(matches) {
   return groups;
 }
 
+/* ── BetPill ─────────────────────────────────────────────────────────── */
+const BetPill = ({ label, value }) => (
+  <div
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "5px",
+      padding: "4px 10px",
+      borderRadius: "6px",
+      backgroundColor: "var(--color-bg-main)",
+      border: "1px solid var(--color-border)",
+      flexShrink: 0,
+    }}
+  >
+    <span
+      style={{
+        fontSize: "11px",
+        color: "var(--color-text-dark)",
+        opacity: 0.5,
+        fontFamily: "var(--font-nunito)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </span>
+    <span
+      style={{
+        fontSize: "13px",
+        fontWeight: "700",
+        color: "var(--color-primary)",
+        fontFamily: "var(--font-rajdhani)",
+        lineHeight: 1,
+      }}
+    >
+      {value}
+    </span>
+  </div>
+);
+
+/* ── MatchCard ───────────────────────────────────────────────────────── */
+const MatchCard = ({ match, activeSport }) => {
+  const [hovered, setHovered] = useState(false);
+  const ActiveIcon = activeSport?.Icon;
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "relative",
+        backgroundColor: "var(--color-input-bg)",
+        borderRadius: "14px",
+        border: `1.5px solid ${hovered ? "var(--color-primary)" : "var(--color-border)"}`,
+        overflow: "hidden",
+        cursor: "pointer",
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
+        transition: "border-color 0.18s, transform 0.18s",
+      }}
+    >
+      {/* Top accent bar */}
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          height: "3px",
+          width: "100%",
+          backgroundColor: "var(--color-primary)",
+          transformOrigin: "left",
+          transform: hovered ? "scaleX(1)" : "scaleX(0)",
+          transition: "transform 0.25s ease",
+        }}
+      />
+
+      <div style={{ padding: "14px 16px" }}>
+        {/* Row 1: sport icon pill + subtitle + time badge */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "10px",
+            gap: "8px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+            {/* Icon tile */}
+            <div
+              style={{
+                width: "34px",
+                height: "34px",
+                minWidth: "34px",
+                borderRadius: "9px",
+                backgroundColor: "var(--color-primary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {ActiveIcon && (
+                <ActiveIcon size={18} style={{ color: "var(--color-text-muted)" }} />
+              )}
+            </div>
+            {/* Subtitle */}
+            <span
+              style={{
+                fontSize: "12px",
+                fontWeight: "600",
+                color: "var(--color-text-dark)",
+                opacity: 0.45,
+                fontFamily: "var(--font-nunito)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {match.subtitle}
+            </span>
+          </div>
+
+          {/* Time badge */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              padding: "3px 8px",
+              borderRadius: "20px",
+              backgroundColor: "var(--color-bg-main)",
+              border: "1px solid var(--color-border)",
+              flexShrink: 0,
+            }}
+          >
+            <MdAccessTime size={12} style={{ color: "var(--color-primary)", opacity: 0.8 }} />
+            <span
+              style={{
+                fontFamily: "var(--font-rajdhani)",
+                fontWeight: "700",
+                fontSize: "11px",
+                color: "var(--color-primary)",
+                letterSpacing: "0.4px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {match.time}
+            </span>
+          </div>
+        </div>
+
+        {/* Row 2: match title + chevron */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "12px",
+            gap: "8px",
+          }}
+        >
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-rajdhani)",
+              fontWeight: "700",
+              fontSize: "clamp(13px, 4vw, 15px)",
+              color: "var(--color-text-dark)",
+              lineHeight: "1.25",
+              letterSpacing: "0.2px",
+              minWidth: 0,
+            }}
+          >
+            {match.title}
+          </h3>
+          <MdChevronRight
+            size={20}
+            style={{
+              color: "var(--color-accent)",
+              flexShrink: 0,
+              transform: hovered ? "translateX(3px)" : "translateX(0)",
+              transition: "transform 0.18s",
+            }}
+          />
+        </div>
+
+        {/* Row 3: bet pills */}
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            flexWrap: "wrap",
+          }}
+        >
+          <BetPill label="Match Bets" value={match.matchBets} />
+          <BetPill label="Session Bets" value={match.sessionBets} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── Live (main) ─────────────────────────────────────────────────────── */
 const Live = () => {
   const [active, setActive] = useState("cricket");
-  const [hoveredId, setHoveredId] = useState(null);
   const matches = MATCHES[active] ?? [];
   const activeSport = SPORTS.find((s) => s.id === active);
   const grouped = groupByDate(matches);
@@ -95,7 +295,7 @@ const Live = () => {
         fontFamily: "var(--font-nunito)",
       }}
     >
-      {/* ── Sport tabs ── */}
+      {/* ── Sport tab strip ── */}
       <div
         style={{
           position: "sticky",
@@ -109,8 +309,8 @@ const Live = () => {
           style={{
             display: "flex",
             overflowX: "auto",
-            padding: "6px 10px",
             gap: "4px",
+            padding: "8px 10px",
             scrollbarWidth: "none",
             WebkitOverflowScrolling: "touch",
           }}
@@ -126,8 +326,8 @@ const Live = () => {
                   flexDirection: "column",
                   alignItems: "center",
                   gap: "3px",
-                  padding: "8px 14px 6px",
-                  borderRadius: "12px",
+                  padding: "8px 14px 7px",
+                  borderRadius: "10px",
                   border: "none",
                   backgroundColor: isActive
                     ? "var(--color-primary)"
@@ -138,18 +338,19 @@ const Live = () => {
                   cursor: "pointer",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
-                  transition: "background 0.18s, color 0.18s",
                   outline: "none",
+                  transition: "background 0.18s, color 0.18s",
                 }}
               >
-                <Icon size={22} />
+                <Icon size={20} />
                 <span
                   style={{
                     fontFamily: "var(--font-rajdhani)",
                     fontWeight: "700",
                     fontSize: "10px",
-                    letterSpacing: "0.6px",
+                    letterSpacing: "0.7px",
                     textTransform: "uppercase",
+                    lineHeight: 1,
                   }}
                 >
                   {label}
@@ -160,9 +361,19 @@ const Live = () => {
         </div>
       </div>
 
-      {/* ── Match list ── */}
-      <div style={{ padding: "16px 12px", display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* ── Content ── */}
+      <div
+        style={{
+          padding: "16px 12px",
+          maxWidth: "640px",      /* cap width on wide screens */
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px",
+        }}
+      >
         {matches.length === 0 ? (
+          /* Empty state */
           <div
             style={{
               display: "flex",
@@ -171,12 +382,13 @@ const Live = () => {
               justifyContent: "center",
               padding: "64px 24px",
               gap: "12px",
+              textAlign: "center",
             }}
           >
             <div
               style={{
-                width: "64px",
-                height: "64px",
+                width: "60px",
+                height: "60px",
                 borderRadius: "50%",
                 backgroundColor: "var(--color-input-bg)",
                 border: "1px solid var(--color-border)",
@@ -185,7 +397,10 @@ const Live = () => {
                 justifyContent: "center",
               }}
             >
-              <IoTrophyOutline size={28} style={{ color: "var(--color-accent)", opacity: 0.5 }} />
+              <IoTrophyOutline
+                size={26}
+                style={{ color: "var(--color-accent)", opacity: 0.5 }}
+              />
             </div>
             <p
               style={{
@@ -195,7 +410,7 @@ const Live = () => {
                 fontSize: "15px",
                 letterSpacing: "0.3px",
                 color: "var(--color-text-dark)",
-                opacity: 0.45,
+                opacity: 0.4,
               }}
             >
               No matches available
@@ -205,7 +420,7 @@ const Live = () => {
                 margin: 0,
                 fontSize: "12px",
                 color: "var(--color-text-dark)",
-                opacity: 0.35,
+                opacity: 0.3,
               }}
             >
               Check back later for upcoming games
@@ -213,10 +428,18 @@ const Live = () => {
           </div>
         ) : (
           Object.entries(grouped).map(([dateLabel, groupMatches]) => (
-            <div key={dateLabel} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-
+            <div
+              key={dateLabel}
+              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            >
               {/* Date divider */}
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
                 <span
                   style={{
                     fontFamily: "var(--font-rajdhani)",
@@ -239,147 +462,14 @@ const Live = () => {
                 />
               </div>
 
-              {/* Cards */}
-              {groupMatches.map((match) => {
-                const isHovered = hoveredId === match.id;
-                const ActiveIcon = activeSport?.Icon;
-                return (
-                  <div
-                    key={match.id}
-                    onMouseEnter={() => setHoveredId(match.id)}
-                    onMouseLeave={() => setHoveredId(null)}
-                    style={{
-                      backgroundColor: "var(--color-input-bg)",
-                      borderRadius: "14px",
-                      border: `1px solid ${isHovered ? "var(--color-primary)" : "var(--color-border)"}`,
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      transition: "border-color 0.18s, transform 0.15s",
-                      transform: isHovered ? "translateY(-2px)" : "translateY(0)",
-                    }}
-                  >
-                    {/* Top accent bar on hover */}
-                    <div
-                      style={{
-                        height: "3px",
-                        backgroundColor: "var(--color-primary)",
-                        transform: isHovered ? "scaleX(1)" : "scaleX(0)",
-                        transformOrigin: "left",
-                        transition: "transform 0.25s ease",
-                      }}
-                    />
-
-                    <div style={{ padding: "14px 16px" }}>
-                      {/* Row 1: icon + subtitle + time */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          {/* Sport icon in a pill */}
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              width: "32px",
-                              height: "32px",
-                              borderRadius: "8px",
-                              backgroundColor: "var(--color-primary)",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {ActiveIcon && (
-                              <ActiveIcon size={18} style={{ color: "var(--color-text-muted)" }} />
-                            )}
-                          </div>
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              color: "var(--color-text-dark)",
-                              opacity: 0.5,
-                              fontFamily: "var(--font-nunito)",
-                            }}
-                          >
-                            {match.subtitle}
-                          </span>
-                        </div>
-
-                        {/* Time badge */}
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            padding: "3px 8px",
-                            borderRadius: "20px",
-                            backgroundColor: "var(--color-bg-main)",
-                            border: "1px solid var(--color-border)",
-                          }}
-                        >
-                          <MdAccessTime size={12} style={{ color: "var(--color-primary)", opacity: 0.8 }} />
-                          <span
-                            style={{
-                              fontFamily: "var(--font-rajdhani)",
-                              fontWeight: "700",
-                              fontSize: "11px",
-                              color: "var(--color-primary)",
-                              letterSpacing: "0.4px",
-                            }}
-                          >
-                            {match.time}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Row 2: match title */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: "12px",
-                        }}
-                      >
-                        <h3
-                          style={{
-                            margin: 0,
-                            fontFamily: "var(--font-rajdhani)",
-                            fontWeight: "700",
-                            fontSize: "15px",
-                            letterSpacing: "0.2px",
-                            color: "var(--color-text-dark)",
-                            lineHeight: "1.3",
-                          }}
-                        >
-                          {match.title}
-                        </h3>
-                        <MdChevronRight
-                          size={20}
-                          style={{
-                            color: "var(--color-accent)",
-                            flexShrink: 0,
-                            marginLeft: "8px",
-                            transition: "transform 0.15s",
-                            transform: isHovered ? "translateX(3px)" : "translateX(0)",
-                          }}
-                        />
-                      </div>
-
-                      {/* Row 3: bet pills */}
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <BetPill label="Match Bets" value={match.matchBets} />
-                        <BetPill label="Session Bets" value={match.sessionBets} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {/* Match cards */}
+              {groupMatches.map((match) => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  activeSport={activeSport}
+                />
+              ))}
             </div>
           ))
         )}
@@ -387,40 +477,5 @@ const Live = () => {
     </div>
   );
 };
-
-const BetPill = ({ label, value }) => (
-  <div
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "6px",
-      padding: "4px 10px",
-      borderRadius: "6px",
-      backgroundColor: "var(--color-bg-main)",
-      border: "1px solid var(--color-border)",
-    }}
-  >
-    <span
-      style={{
-        fontSize: "11px",
-        color: "var(--color-text-dark)",
-        opacity: 0.55,
-        fontFamily: "var(--font-nunito)",
-      }}
-    >
-      {label}
-    </span>
-    <span
-      style={{
-        fontSize: "12px",
-        fontWeight: "700",
-        color: "var(--color-primary)",
-        fontFamily: "var(--font-rajdhani)",
-      }}
-    >
-      {value}
-    </span>
-  </div>
-);
 
 export default Live;
