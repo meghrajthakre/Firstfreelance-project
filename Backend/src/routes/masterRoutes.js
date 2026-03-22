@@ -1,17 +1,15 @@
 const { Router } = require("express");
 const {
-  createMaster,
   createAdmin,
   createUser,
-  getMasters,
   getAdmins,
   getUsers,
   addCoins,
   toggleBlock,
   deleteUser,
-} = require("../controllers/superAdminController");
+} = require("../controllers/masterController");
 const { protect } = require("../middleware/authMiddleware");
-const { superAdminOnly } = require("../middleware/roleMiddleware");
+const { masterAndAbove } = require("../middleware/roleMiddleware");
 const {
   validateBody,
   validateQuery,
@@ -23,17 +21,15 @@ const {
 
 const router = Router();
 
-router.use(protect, superAdminOnly);
+router.use(protect, masterAndAbove);
 
 // ── Create ────────────────────────────────────────────────────────────────────
-router.post("/masters", validateBody(createAdminSchema), createMaster);
-router.post("/admins",  validateBody(createAdminSchema), createAdmin);
-router.post("/users",   validateBody(createUserSchema),  createUser);
+router.post("/admins", validateBody(createAdminSchema), createAdmin);
+router.post("/users",  validateBody(createUserSchema),  createUser);
 
 // ── List ──────────────────────────────────────────────────────────────────────
-router.get("/masters", validateQuery(paginationSchema), getMasters);
-router.get("/admins",  validateQuery(paginationSchema), getAdmins);
-router.get("/users",   validateQuery(paginationSchema), getUsers);
+router.get("/admins", validateQuery(paginationSchema), getAdmins);
+router.get("/users",  validateQuery(paginationSchema), getUsers);
 
 // ── Coins ─────────────────────────────────────────────────────────────────────
 router.patch("/add-coins/:userId", validateBody(addCoinsSchema), addCoins);

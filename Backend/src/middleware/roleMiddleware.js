@@ -14,9 +14,9 @@ const authorize = (...roles) => (req, _res, next) => {
   next();
 };
 
-const superAdminOnly  = authorize(ROLES.SUPERADMIN);
-const masterAndAbove  = authorize(ROLES.SUPERADMIN, ROLES.MASTER);
-const adminAndAbove   = authorize(ROLES.SUPERADMIN, ROLES.MASTER, ROLES.ADMIN);
-const userOnly        = authorize(ROLES.USER);
+const superAdminOnly = authorize(ROLES.SUPERADMIN);
+const masterAndAbove = authorize(ROLES.SUPERADMIN, ROLES.MASTER);
+const adminAndAbove  = authorize(ROLES.SUPERADMIN, ROLES.MASTER, ROLES.ADMIN);
+const userOnly       = authorize(ROLES.USER);
 
 module.exports = { authorize, superAdminOnly, masterAndAbove, adminAndAbove, userOnly };
