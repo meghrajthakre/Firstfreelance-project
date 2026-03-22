@@ -8,14 +8,13 @@ import {
   MdChevronRight,
   MdAccessTime,
 } from "react-icons/md";
-import { GiWrestler } from "react-icons/gi";
 import { IoTrophyOutline } from "react-icons/io5";
 
 const SPORTS = [
   { id: "cricket",    label: "Cricket",    Icon: MdSportsCricket },
   { id: "football",   label: "Football",   Icon: MdSportsFootball },
   { id: "tennis",     label: "Tennis",     Icon: MdSportsTennis },
-  { id: "kabaddi",    label: "Kabaddi",    Icon: GiWrestler },
+  { id: "kabaddi",    label: "Kabaddi",    Icon: MdSportsCricket },
   { id: "elections",  label: "Elections",  Icon: MdHowToVote },
   { id: "tournament", label: "Tournament", Icon: MdEmojiEvents },
 ];
