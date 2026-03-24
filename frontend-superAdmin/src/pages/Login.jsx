@@ -13,6 +13,11 @@ function EyeIcon({ open }) {
   );
 }
 
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+// Set this to your backend base URL, or use an env var (Vite: import.meta.env.VITE_API_URL)
+const API_BASE = import.meta.env?.VITE_API_URL ?? "http://localhost:5000/api";
+// ──────────────────────────────────────────────────────────────────────────────
+
 export default function LoginPage() {
   const [form, setForm]       = useState({ username: "", password: "" });
   const [showPass, setShow]   = useState(false);
@@ -20,6 +25,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState(null);
 
+  // Client-side validation
   const validate = () => {
     const e = {};
     if (!form.username.trim()) e.username = "Username is required";
@@ -28,18 +34,59 @@ export default function LoginPage() {
   };
 
   const handleSubmit = async () => {
+    // 1. Client-side validation
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length) return;
+
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setLoading(false);
-    // Demo: wrong credentials simulation
-    if (form.username !== "superadmin" || form.password !== "admin123") {
-      setErrors({ password: "Invalid username or password" });
-      return;
+
+    try {
+      // 2. Call POST /auth/login
+      //    `credentials: "include"` is required so the browser stores the
+      //    httpOnly access + refresh token cookies that the server sets.
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",           // ← stores httpOnly cookies
+        body: JSON.stringify({
+          username: form.username.trim().toLowerCase(),
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      // 3. Handle non-2xx responses
+      if (!res.ok) {
+        // The server may return { message } or { errors: { field: msg } }
+        if (data?.errors && typeof data.errors === "object") {
+          // Field-level errors (e.g. from your validateBody middleware)
+          setErrors(data.errors);
+        } else {
+          // Generic error — show under password field (matches your 401 pattern)
+          setErrors({ password: data?.message ?? "Invalid username or password" });
+        }
+        return;
+      }
+
+      // 4. Success — cookies are now set by the browser automatically.
+      //    Show toast, then redirect to the dashboard (or wherever you need).
+      setToast("Login successful! Redirecting…");
+
+      setTimeout(() => {
+        // Replace with your router's navigate() if using react-router:
+        // navigate("/superadmin/dashboard");
+        window.location.href = "/superadmin/dashboard";
+      }, 1200);
+
+    } catch (err) {
+      // Network / CORS / server-down errors
+      console.error("Login error:", err);
+      setErrors({ password: "Unable to reach the server. Please try again." });
+    } finally {
+      setLoading(false);
     }
-    setToast("Login successful! Redirecting…");
   };
 
   const set = (k, v) => {
@@ -71,8 +118,6 @@ export default function LoginPage() {
 
           {/* Logo */}
           <div className="text-center mb-8">
-           
-           
             <p className="text-sm text-slate-400 mt-1.5">Superadmin Portal — Sign in to continue</p>
           </div>
 
@@ -185,8 +230,6 @@ export default function LoginPage() {
                 </button>
 
               </div>
-
-             
             </div>
           </div>
 

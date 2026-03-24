@@ -23,9 +23,11 @@ const seed = async () => {
     username,
     password,
     role: ROLES.SUPERADMIN,
+    myShare: 0,      
+    downlineShare: 100,  
+    ledgerShare: 0,
     createdBy: null,
   });
-
   console.log("✅  Superadmin created:");
   console.log(`    Username : ${superadmin.username}`);
   console.log(`    Role     : ${superadmin.role}`);

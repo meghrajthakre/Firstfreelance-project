@@ -1,98 +1,121 @@
 "use strict";
 
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+const bcrypt   = require("bcryptjs");
 
 const ROLES = Object.freeze({
   SUPERADMIN: "superadmin",
-  MASTER: "master",
-  ADMIN: "admin",
-  USER: "user",
+  MASTER:     "master",
+  ADMIN:      "admin",
+  USER:       "user",
 });
 
 const userSchema = new mongoose.Schema(
   {
     username: {
-      type: String,
-      required: [true, "Username is required"],
-      trim: true,
+      type:      String,
+      trim:      true,
       lowercase: true,
-      minlength: [3, "Username must be at least 3 characters"],
+      minlength: [3,  "Username must be at least 3 characters"],
       maxlength: [30, "Username cannot exceed 30 characters"],
-      index: true,
+    },
+
+    firstName: {
+      type:    String,
+      trim:    true,
+      default: "",
     },
 
     password: {
-      type: String,
-      required: [true, "Password is required"],
-      minlength: [4, "Password must be at least 4 characters"],
-      select: false,
+      type:      String,
+      required:  [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
+      select:    false,
     },
 
     role: {
-      type: String,
-      enum: {
-        values: Object.values(ROLES),
-        message: "Role must be superadmin, master, admin, or user",
-      },
+      type:    String,
+      enum:    Object.values(ROLES),
       default: ROLES.USER,
     },
 
     coins: {
-      type: Number,
+      type:    Number,
       default: 0,
-      min: [0, "Coins cannot be negative"],
+      min:     [0, "Coins cannot be negative"],
     },
 
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+    fixLimit: {
+      type:    Number,
+      default: 0,
+      min:     [0, "fixLimit cannot be negative"],
     },
 
-    isActive: {
-      type: Boolean,
-      default: true,
-      index: true,
+    /* ── Hierarchy ─────────────────────────────────────────── */
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    parentId:  { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
+    /* ── Share system ──────────────────────────────────────── */
+    // myShare + downlineShare = 100 always
+    myShare: {
+      type:    Number,
+      default: 0,
+      min:     [0,   "myShare cannot be negative"],
+      max:     [100, "myShare cannot exceed 100"],
     },
 
-    lastLogin: {
-      type: Date,
-      default: null,
+    downlineShare: {
+      type:    Number,
+      default: 0,
+      min:     [0,   "downlineShare cannot be negative"],
+      max:     [100, "downlineShare cannot exceed 100"],
     },
+
+    // Independent — profit/loss % shared via ledger
+    ledgerShare: {
+      type:    Number,
+      default: 0,
+      min:     [0,   "ledgerShare cannot be negative"],
+      max:     [100, "ledgerShare cannot exceed 100"],
+    },
+
+    isActive: { type: Boolean, default: true },
   },
   {
     timestamps: true,
-    toJSON: {
-      virtuals: false,
-      transform(_doc, ret) {
-        delete ret.password;
-        delete ret.__v;
-        return ret;
-      },
-    },
+    toJSON:   { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
-// ── Compound indexes
-userSchema.index({ createdBy: 1, role: 1 });
+/* ── Indexes ───────────────────────────────────────────────── */
+userSchema.index({ username: 1 });
+userSchema.index({ role:     1 });
+userSchema.index({ parentId: 1 });
+userSchema.index({ createdBy: 1 });
 
-// ── Pre-save: hash password only when modified 
+/* ── Pre-save: hash password ───────────────────────────────── */
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
-  this.password = await bcrypt.hash(this.password, 10);
+  const salt    = await bcrypt.genSalt(12);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
-// ── Instance methods 
-userSchema.methods.comparePassword = function (plaintext) {
-  return bcrypt.compare(plaintext, this.password);
-};
+/* ── Virtual ───────────────────────────────────────────────── */
+userSchema.virtual("shareTotal").get(function () {
+  return this.myShare + this.downlineShare; // always 100
+});
 
-// ── Static helpers 
+/* ── Statics & methods ─────────────────────────────────────── */
 userSchema.statics.findByUsername = function (username) {
-  return this.findOne({ username: username.toLowerCase().trim() }).select("+password");
+  return this.findOne({ username }).select("+password");
+};
+userSchema.methods.verifyPassword = function (plain) {
+  return bcrypt.compare(plain, this.password);
+};
+userSchema.methods.comparePassword = function (plain) {
+  return bcrypt.compare(plain, this.password);
 };
 
 const User = mongoose.model("User", userSchema);
-
 module.exports = { User, ROLES };

@@ -1,124 +1,242 @@
 "use strict";
 
-const mongoose = require("mongoose");
 const { User, ROLES } = require("../models/User");
-const { Ledger, TX_TYPES } = require("../models/Ledger");
-const asyncHandler = require("../utils/asyncHandler");
-const { ok } = require("../utils/apiResponse");
-const AppError = require("../utils/AppError");
+const asyncHandler    = require("../utils/asyncHandler");
+const AppError        = require("../utils/AppError");
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+/* ── Auto-generate username ────────────────────────────────── */
+const generateUsername = async () => {
+  const last = await User
+    .findOne({ role: ROLES.ADMIN })
+    .sort({ createdAt: -1 })
+    .select("username");
 
-const validId   = (id) => mongoose.Types.ObjectId.isValid(id);
-const notSelf   = (a, b) => a.toString() !== b.toString();
-const canManage = (role) => role !== ROLES.SUPERADMIN;
-
-const getUser = async (id, projection = "username role isActive createdBy") => {
-  if (!validId(id)) throw new AppError("Invalid user ID.", 400);
-  const user = await User.findById(id).select(projection);
-  if (!user) throw new AppError("User not found.", 404);
-  return user;
+  if (!last) return "ADMIN100";
+  const num = parseInt(last.username.replace(/\D/g, ""), 10);
+  return `ADMIN${isNaN(num) ? 100 : num + 1}`;
 };
 
-// ── Create ────────────────────────────────────────────────────────────────────
-
-const createMaster = asyncHandler(async (req, res) => {
-  const user = await User.create({ ...req.body, role: ROLES.MASTER, createdBy: req.user._id });
-  return ok(res, 201, "Master created successfully", { user });
-});
-
+/* ─────────────────────────────────────────────────────────────
+   CREATE ADMIN   POST /superadmin/admins
+   Body: { firstName, masterShare, myShare, ledgerShare,
+           fixLimit, password, confirmPassword }
+───────────────────────────────────────────────────────────── */
 const createAdmin = asyncHandler(async (req, res) => {
-  const user = await User.create({ ...req.body, role: ROLES.ADMIN, createdBy: req.user._id });
-  return ok(res, 201, "Admin created successfully", { user });
-});
+  const {
+    firstName,
+    masterShare,
+    myShare,
+    ledgerShare,
+    fixLimit,
+    password,
+    confirmPassword,
+  } = req.body;
 
-const createUser = asyncHandler(async (req, res) => {
-  const user = await User.create({ ...req.body, role: ROLES.USER, createdBy: req.user._id });
-  return ok(res, 201, "User created successfully", { user });
-});
+  // ── Password ─────────────────────────────────────────────
+  if (!password || !confirmPassword)
+    throw new AppError("Password and confirmPassword are required.", 400);
+  if (password !== confirmPassword)
+    throw new AppError("Passwords do not match.", 400);
+  if (password.length < 6)
+    throw new AppError("Password must be at least 6 characters.", 400);
 
-// ── List ──────────────────────────────────────────────────────────────────────
+  // ── Required share fields ─────────────────────────────────
+  if (masterShare === undefined || myShare === undefined)
+    throw new AppError("masterShare and myShare are required.", 400);
 
-const LIST_PROJECTION = "username role coins isActive createdAt createdBy";
+  // ── Parse ─────────────────────────────────────────────────
+  const master = Number(masterShare);
+  const ms     = Number(myShare);
+  const ls     = Number(ledgerShare ?? 0);
+  const fl     = Number(fixLimit    ?? 0);
 
-const listByRole = (role, label) =>
-  asyncHandler(async (req, res) => {
-    const users = await User.find({ role })
-      .select(LIST_PROJECTION)
-      .populate("createdBy", "username role")
-      .sort({ createdAt: -1 })
-      .lean();
-    return ok(res, 200, `${label} retrieved`, { users });
+  // ── Numeric checks ────────────────────────────────────────
+  if ([master, ms, ls, fl].some(isNaN))
+    throw new AppError("Share fields must be valid numbers.", 400);
+  if (master < 0 || master > 100)
+    throw new AppError("masterShare must be between 0 and 100.", 400);
+  if (ms < 0 || ms > 100)
+    throw new AppError("myShare must be between 0 and 100.", 400);
+  if (ls < 0 || ls > 100)
+    throw new AppError("ledgerShare must be between 0 and 100.", 400);
+  if (fl < 0)
+    throw new AppError("fixLimit cannot be negative.", 400);
+
+ if (master > req.user.downlineShare)
+  throw new AppError(
+    `masterShare (${master}) cannot exceed your available share (${req.user.downlineShare}).`,
+    400
+  );
+
+  // ── myShare cannot exceed masterShare ─────────────────────
+  if (ms > master)
+    throw new AppError(
+      `myShare (${ms}) cannot exceed masterShare (${master}).`,
+      400
+    );
+
+  // ── adminShare is auto-calculated ─────────────────────────
+  const adminShare = master - ms;
+
+  // ── Generate username ─────────────────────────────────────
+  const username = await generateUsername();
+
+  // ── Create ────────────────────────────────────────────────
+  const admin = await User.create({
+    username,
+    firstName:     firstName?.trim() ?? "",
+    password,
+    role:          ROLES.ADMIN,
+    myShare:       ms,
+    downlineShare: adminShare,
+    ledgerShare:   ls,
+    fixLimit:      fl,
+    coins:         0,
+    createdBy:     req.user._id,
+    parentId:      req.user._id,
   });
 
-const getMasters = listByRole(ROLES.MASTER, "Masters");
-const getAdmins  = listByRole(ROLES.ADMIN,  "Admins");
-const getUsers   = listByRole(ROLES.USER,   "Users");
+  const data = admin.toObject();
+  delete data.password;
 
-// ── Coins ─────────────────────────────────────────────────────────────────────
+  res.status(201).json({
+    success: true,
+    message: `Admin ${username} created successfully.`,
+    data,
+  });
+});
 
-const addCoins = asyncHandler(async (req, res) => {
-  const { amount, reason } = req.body;
+/* ─────────────────────────────────────────────────────────────
+   GET ALL ADMINS   GET /superadmin/admins
+───────────────────────────────────────────────────────────── */
+const getAdmins = asyncHandler(async (req, res) => {
+  // Extract query params
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const search = req.query.search || "";
+  const skip = (page - 1) * limit;
 
-  const target = await getUser(req.params.userId, "username role coins isActive");
-  if (!canManage(target.role)) throw new AppError("Cannot credit a superadmin.", 403);
-  if (!target.isActive)        throw new AppError("Cannot credit a blocked user.", 403);
+  // Build filter
+  const filter = {
+    role: ROLES.ADMIN,
+    createdBy: req.user._id,
+  };
+  if (search) {
+    filter.$or = [
+      { firstName: { $regex: search, $options: "i" } },
+      { username: { $regex: search, $options: "i" } },
+    ];
+  }
 
-  const balanceBefore  = target.coins;
-  target.coins         = +(target.coins + amount).toFixed(2);
-
-  await Promise.all([
-    target.save({ validateBeforeSave: false }),
-    Ledger.create({
-      userId: target._id, amount, type: TX_TYPES.CREDIT,
-      reason, createdBy: req.user._id, balanceBefore, balanceAfter: target.coins,
-    }),
+  // Get total count and data
+  const [admins, total] = await Promise.all([
+    User.find(filter)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    User.countDocuments(filter),
   ]);
 
-  return ok(res, 200, `${amount} coins credited to ${target.username}`, {
-    userId: target._id, username: target.username,
-    balanceBefore, credited: amount, balanceAfter: target.coins,
+  res.status(200).json({
+    success: true,
+    data: admins,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  });
+});
+/* ─────────────────────────────────────────────────────────────
+   GET SINGLE ADMIN   GET /superadmin/admins/:id
+───────────────────────────────────────────────────────────── */
+const getAdmin = asyncHandler(async (req, res) => {
+  const admin = await User
+    .findOne({ _id: req.params.id, role: ROLES.ADMIN, createdBy: req.user._id })
+    .select("-password");
+
+  if (!admin) throw new AppError("Admin not found.", 404);
+
+  res.status(200).json({ success: true, data: admin });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   UPDATE ADMIN   PATCH /superadmin/admins/:id
+───────────────────────────────────────────────────────────── */
+const updateAdmin = asyncHandler(async (req, res) => {
+  const allowed = ["firstName", "isActive", "fixLimit", "ledgerShare"];
+
+  const updates = {};
+  allowed.forEach(f => {
+    if (req.body[f] !== undefined) updates[f] = req.body[f];
+  });
+
+  if (Object.keys(updates).length === 0)
+    throw new AppError("No valid fields provided to update.", 400);
+
+  const admin = await User.findOneAndUpdate(
+    { _id: req.params.id, role: ROLES.ADMIN, createdBy: req.user._id },
+    updates,
+    { new: true, runValidators: true }
+  ).select("-password");
+
+  if (!admin) throw new AppError("Admin not found.", 404);
+
+  res.status(200).json({ success: true, message: "Admin updated.", data: admin });
+});
+
+/* ─────────────────────────────────────────────────────────────
+   TOGGLE STATUS   PATCH /superadmin/admins/:id/status
+───────────────────────────────────────────────────────────── */
+const toggleAdminStatus = asyncHandler(async (req, res) => {
+  const admin = await User.findOne({
+    _id: req.params.id, role: ROLES.ADMIN, createdBy: req.user._id,
+  });
+
+  if (!admin) throw new AppError("Admin not found.", 404);
+
+  admin.isActive = !admin.isActive;
+  await admin.save({ validateModifiedOnly: true });
+
+  res.status(200).json({
+    success: true,
+    message: `Admin ${admin.isActive ? "activated" : "deactivated"}.`,
+    data:    { isActive: admin.isActive },
   });
 });
 
-// ── Block / Unblock ───────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────
+   CHANGE PASSWORD   PATCH /superadmin/admins/:id/password
+───────────────────────────────────────────────────────────── */
+const changeAdminPassword = asyncHandler(async (req, res) => {
+  const { password, confirmPassword } = req.body;
 
-const toggleBlock = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  if (!notSelf(req.user._id, id)) throw new AppError("You cannot block your own account.", 400);
+  if (!password || !confirmPassword)
+    throw new AppError("password and confirmPassword are required.", 400);
+  if (password !== confirmPassword)
+    throw new AppError("Passwords do not match.", 400);
+  if (password.length < 6)
+    throw new AppError("Password must be at least 6 characters.", 400);
 
-  const target = await getUser(id);
-  if (!canManage(target.role)) throw new AppError("Cannot block a superadmin.", 403);
-
-  target.isActive = !target.isActive;
-  await target.save({ validateBeforeSave: false });
-
-  return ok(res, 200, `User ${target.isActive ? "unblocked" : "blocked"} successfully`, {
-    userId: target._id, username: target.username,
-    role: target.role,  isActive: target.isActive,
+  const admin = await User.findOne({
+    _id: req.params.id, role: ROLES.ADMIN, createdBy: req.user._id,
   });
+
+  if (!admin) throw new AppError("Admin not found.", 404);
+
+  admin.password = password;
+  await admin.save({ validateModifiedOnly: true });
+
+  res.status(200).json({ success: true, message: "Password changed successfully." });
 });
-
-// ── Delete ────────────────────────────────────────────────────────────────────
-
-const deleteUser = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  if (!notSelf(req.user._id, id)) throw new AppError("You cannot delete your own account.", 400);
-
-  const target = await getUser(id, "username role");
-  if (!canManage(target.role)) throw new AppError("Cannot delete a superadmin.", 403);
-
-  await target.deleteOne();
-
-  return ok(res, 200, "User deleted successfully", {
-    userId: target._id, username: target.username, role: target.role,
-  });
-});
-
-// ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
-  createMaster, createAdmin, createUser,
-  getMasters,   getAdmins,   getUsers,
-  addCoins,     toggleBlock, deleteUser,
+  createAdmin,
+  getAdmins,
+  getAdmin,
+  updateAdmin,
+  toggleAdminStatus,
+  changeAdminPassword,
 };

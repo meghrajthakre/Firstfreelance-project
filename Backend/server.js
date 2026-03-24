@@ -23,23 +23,20 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000")
-  .split(",")
-  .map((o) => o.trim());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000"
+];
+app.use(cors({
 
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // Allow requests with no origin (e.g. curl, Postman) in non-production
-      if (!origin && NODE_ENV !== "production") return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      cb(new Error(`CORS: origin "${origin}" not allowed`));
-    },
-    credentials: true, // Required for cookies
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin))
+      return cb(null, true);
+    cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true
+}));
 
 // ── Body parsing & cookie parser ──────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));       // Guard against large payload attacks
