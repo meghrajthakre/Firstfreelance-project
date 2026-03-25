@@ -286,10 +286,9 @@ export default function AdminsPage() {
                               onClick={() => handleToggle(a._id)}
                               className={`flex items-center gap-1.5 text-white text-xs font-semibold
                                 px-3 py-1.5 rounded transition-colors
-                                ${
-                                  a.isActive
-                                    ? "bg-red-500 hover:bg-red-600"
-                                    : "bg-green-500 hover:bg-green-600"
+                                ${a.isActive
+                                  ? "bg-red-500 hover:bg-red-600"
+                                  : "bg-green-500 hover:bg-green-600"
                                 }`}
                             >
                               <Icon
@@ -354,7 +353,150 @@ export default function AdminsPage() {
           CREATE ADMIN MODAL (unchanged)
       ════════════════════════════════════════════════════════════════════ */}
       <Modal open={modalOpen} title="Create Admin" onClose={() => setModalOpen(false)}>
-        {/* ... (keep exactly as before) ... */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* First Name */}
+          <div className="col-span-2">
+            <Field label="First Name">
+              <input
+                className={inputCls}
+                placeholder="Akash"
+                value={form.firstName}
+                onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))}
+              />
+            </Field>
+          </div>
+
+          {/* Username — auto-generated, shown as info */}
+          <div className="col-span-2">
+            <div className="flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
+              <Icon d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" size={14} />
+              <span className="text-xs text-teal-700 font-medium">
+                Username will be auto-generated (e.g. ADMIN693)
+              </span>
+            </div>
+          </div>
+
+          {/* Master Share — read-only, is superadmin's downlineShare */}
+          <Field label="Master Share % (Your Budget)">
+            <input
+              className={readonlyCls}
+              type="number"
+              readOnly
+              value={form.masterShare}
+              title="This is your available downline share — cannot be changed here"
+            />
+          </Field>
+
+          {/* My Share */}
+          <Field label="My Share %">
+            <input
+              className={inputCls}
+              type="number"
+              placeholder="0"
+              value={form.myShare}
+              min={0}
+              max={Number(form.masterShare)}
+              onChange={(e) => setForm((p) => ({ ...p, myShare: e.target.value }))}
+            />
+          </Field>
+
+          {/* Admin Share — auto-calculated, read-only */}
+          <Field label="Admin Share % (Auto)">
+            <input
+              className={readonlyCls}
+              type="number"
+              readOnly
+              value={adminShare}
+              title="Auto-calculated: Master Share − My Share"
+            />
+          </Field>
+
+          {/* Ledger Share */}
+          <Field label="Ledger Share">
+            <input
+              className={inputCls}
+              type="number"
+              placeholder="0"
+              value={form.ledgerShare}
+              min={0}
+              max={100}
+              onChange={(e) => setForm((p) => ({ ...p, ledgerShare: e.target.value }))}
+            />
+          </Field>
+
+          {/* Fix Limit */}
+          <Field label="Fix Limit">
+            <input
+              className={inputCls}
+              type="number"
+              placeholder="0"
+              value={form.fixLimit}
+              min={0}
+              onChange={(e) => setForm((p) => ({ ...p, fixLimit: e.target.value }))}
+            />
+          </Field>
+
+          {/* Password */}
+          <Field label="Password">
+            <input
+              className={inputCls}
+              type="password"
+              placeholder="••••••"
+              value={form.password}
+              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+            />
+          </Field>
+
+          {/* Confirm Password */}
+          <Field label="Confirm Password">
+            <input
+              className={inputCls}
+              type="password"
+              placeholder="••••••"
+              value={form.confirmPassword}
+              onChange={(e) => setForm((p) => ({ ...p, confirmPassword: e.target.value }))}
+            />
+          </Field>
+        </div>
+
+        {/* Live share breakdown */}
+        <div className="mt-4 bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 text-xs text-gray-500 space-y-1">
+          <div className="flex justify-between">
+            <span>Master Share</span>
+            <span className="font-semibold text-gray-700">{form.masterShare || 0}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span>− My Share</span>
+            <span className="font-semibold text-gray-700">{form.myShare || 0}%</span>
+          </div>
+          <div className="border-t border-gray-200 pt-1 flex justify-between">
+            <span>= Admin Share</span>
+            <span
+              className={`font-bold ${adminShare === "Invalid" ? "text-red-500" : "text-teal-600"
+                }`}
+            >
+              {adminShare === "" ? "—" : `${adminShare}%`}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-5">
+          <button
+            onClick={() => setModalOpen(false)}
+            className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={saving || adminShare === "Invalid"}
+            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold
+              bg-teal-500 hover:bg-teal-600 disabled:opacity-60 text-white rounded-lg transition-colors"
+          >
+            {saving && <Spinner />}
+            {saving ? "Creating…" : "Create Admin"}
+          </button>
+        </div>
       </Modal>
 
       {/* Confirmation Modal */}
