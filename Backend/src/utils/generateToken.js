@@ -10,7 +10,7 @@ const jwt = require("jsonwebtoken");
  */
 const generateAccessToken = (payload) =>
   jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "60m",
+    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "180m",
     issuer: "betting-dashboard",
     audience: "betting-dashboard-client",
   });
@@ -33,7 +33,7 @@ const accessCookieOptions = () => ({
   httpOnly: true,
   secure: IS_PROD(),
   sameSite: IS_PROD() ? "strict" : "lax",
-  maxAge: 60 * 60 * 1000, // 60 min
+  maxAge: 180 * 60 * 1000,
   path: "/",
 });
 
