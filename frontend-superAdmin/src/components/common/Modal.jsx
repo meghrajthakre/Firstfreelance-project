@@ -15,7 +15,7 @@ export default function Modal({ open, title, onClose, children }) {
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <Icon d="M18 6L6 18M6 6l12 12" size={18} />
+            <Icon d="M18 6L6 18M6 6l12 12" size={25} />
           </button>
         </div>
         {children}

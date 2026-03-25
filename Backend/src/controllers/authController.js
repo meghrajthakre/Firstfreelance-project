@@ -10,7 +10,6 @@ const AppError = require("../utils/AppError");
 
 // ── POST /auth/login ──────────────────────────────────────────────────────────
 const login = asyncHandler(async (req, res) => {
-  console.log("🔐  Login attempt:", req.body.username);
   const { username, password } = req.body;
 
   const user = await User.findByUsername(username);

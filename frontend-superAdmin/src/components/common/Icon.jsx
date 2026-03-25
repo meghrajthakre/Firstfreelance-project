@@ -9,6 +9,7 @@ export default function Icon({ d, size = 14 }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      cursor="pointer"
     >
       <path d={d} />
     </svg>
