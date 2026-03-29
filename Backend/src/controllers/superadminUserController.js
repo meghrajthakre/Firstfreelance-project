@@ -26,16 +26,15 @@ const createUser = asyncHandler(async (req, res) => {
     throw new AppError("coins must be a non-negative number.", 400);
 
   // ── Generate unique username ────────────────────────────────
-  let username = firstName.trim().toLowerCase().replace(/\s+/g, '');
-  let baseUsername = username;
-  let counter = 1;
-  
-  // Check if username exists and generate unique one
-  while (await User.findOne({ username })) {
-    username = `${baseUsername}${counter}`;
-    counter++;
-  }
+  const generateUsername = () => {
+  const randomDigits = Math.floor(10000 + Math.random() * 90000); // 5-digit random
+  return `sm${randomDigits}`;
+};
 
+let username = generateUsername();
+while (await User.findOne({ username })) {
+  username = generateUsername();
+}
   // ── Create ────────────────────────────────────────────────
   const user = await User.create({
     username,  // Add generated username

@@ -5,7 +5,7 @@ export default function StatusBadge({ isActive, onToggle }) {
       onClick={onToggle}
       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-all hover:opacity-80 ${
         isActive
-          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+          ? "bg-green-500 text--700 border border-emerald-200"
           : "bg-red-50 text-red-700 border border-red-200"
       }`}
     >

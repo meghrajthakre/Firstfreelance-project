@@ -37,22 +37,24 @@ export default function UsersList({ onGoCreate }) {
 
   const handleToggle = async (id) => {
     // Optional: Add confirmation dialog
-    const user = users.find(u => u._id === id);
-    const action = user?.isActive ? 'block' : 'activate';
-    const confirmed = window.confirm(`Are you sure you want to ${action} this user?`);
-    
+    const user = users.find((u) => u._id === id);
+    const action = user?.isActive ? "block" : "activate";
+    const confirmed = window.confirm(
+      `Are you sure you want to ${action} this user?`,
+    );
+
     if (!confirmed) return;
-    
+
     try {
       setToggleLoading(true);
       // Call the API to toggle user status
       await toggleUserStatus(id);
-      
+
       // Update local state after successful API call
       setUsers((u) =>
-        u.map((x) => (x._id === id ? { ...x, isActive: !x.isActive } : x))
+        u.map((x) => (x._id === id ? { ...x, isActive: !x.isActive } : x)),
       );
-      
+
       // Optional: Show success message
       // You can add a toast notification here
     } catch (error) {
@@ -75,13 +77,17 @@ export default function UsersList({ onGoCreate }) {
   };
 
   const filteredUsers = users.filter((u) =>
-    u.firstName?.toLowerCase().includes(search.toLowerCase())
+    u.firstName?.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
     <div className="p-6 font-sans">
-      <PageHeader title="Users" buttonText="+ Create User" onButtonClick={onGoCreate} />
-      
+      <PageHeader
+        title="Users"
+        buttonText="+ Create User"
+        onButtonClick={onGoCreate}
+      />
+
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <SearchBar
           search={search}
@@ -89,7 +95,7 @@ export default function UsersList({ onGoCreate }) {
           onSearch={handleSearch}
           loading={loading}
         />
-        
+
         <UsersTable
           users={filteredUsers}
           loading={loading || toggleLoading}
@@ -97,10 +103,11 @@ export default function UsersList({ onGoCreate }) {
           onChangePassword={(user) => setPwModal(user)}
           onDelete={(user) => setDeleteModal(user)}
         />
-        
+
         {filteredUsers.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-100 text-xs text-gray-400 font-medium bg-gray-50/30">
-            Showing {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}
+          <div className="px-6 py-3 border-t border-gray-1  00 text-xs text-gray-400 font-medium bg-gray-50/30">
+            Showing {filteredUsers.length} user
+            {filteredUsers.length !== 1 ? "s" : ""}
           </div>
         )}
       </div>
