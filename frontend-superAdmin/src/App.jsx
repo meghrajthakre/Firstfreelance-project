@@ -8,7 +8,7 @@ import InPlayMatchesPage from "./pages/InPlayMatchesPage";
 import ChangePasswordPage from "./pages/Changepasswordpage";
 import SettingsPage from "./pages/SettingPage";
 import LoginPage from "./pages/Login";
-
+import CreateUserPage from "./pages/createUser/CreateUserPage";
 export default function App() {
   return (
     <BrowserRouter>
@@ -24,6 +24,7 @@ export default function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard"        element={<Dashboard />} />
           <Route path="admins"           element={<AdminsPage />} />
+          <Route path="create-user"      element={<CreateUserPage />} />
           <Route path="collection-report" element={<CollectionReport />} />
           <Route path="matches"          element={<MatchesPage />} />
           <Route path="in-play-matches"  element={<InPlayMatchesPage />} />

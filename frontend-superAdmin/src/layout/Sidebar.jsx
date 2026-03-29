@@ -8,11 +8,13 @@ import {
   KeyRound,
   Settings,
   LogOut,
+  UserPlus,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Dashboard",          to: "/superadmin/dashboard",         icon: LayoutDashboard },
   { label: "Admins",             to: "/superadmin/admins",            icon: Users },
+  { label: "Create User",        to: "/superadmin/create-user",       icon: UserPlus },
   { label: "Collection Report",  to: "/superadmin/collection-report", icon: FileBarChart2 },
   { label: "Matches",            to: "/superadmin/matches",           icon: Swords },
   { label: "In Play Matches",    to: "/superadmin/in-play-matches",   icon: Radio },

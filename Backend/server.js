@@ -13,8 +13,9 @@ const { notFound, errorHandler } = require("./src/middleware/errorMiddleware");
 const authRoutes = require("./src/routes/authRoutes");
 const superAdminRoutes = require("./src/routes/superAdminRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
-const userRoutes = require("./src/routes/userRoutes");
 const masterRoutes = require("./src/routes/masterRoutes");
+const superUserRoutes = require("./src/routes/superadminUserRoutes");
+
 
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
@@ -75,9 +76,10 @@ app.use(globalLimiter);
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/superadmin", superAdminRoutes);
+app.use("/api/superadmin/users", superUserRoutes);
 app.use("/api/master", masterRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/user", userRoutes);
+
 
 // ── 404 + global error handler (must be last) ─────────────────────────────────
 app.use(notFound);

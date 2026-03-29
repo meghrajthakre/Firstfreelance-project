@@ -232,6 +232,9 @@ const changeAdminPassword = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "Password changed successfully." });
 });
 
+
+
+
 module.exports = {
   createAdmin,
   getAdmins,
