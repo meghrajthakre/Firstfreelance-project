@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { loginUser } from "../api/userService";
+import { useAuthStore } from "../store/authStore";
+import { useCoinStore } from "../store/coinStore";
 // ── Captcha helpers ──────────────────────────────────────────────────────────
 
 function generateCaptcha() {
@@ -43,26 +45,48 @@ const LoginPage = () => {
     setError('');
   }, []);
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim())
-      return setError('Please fill in all fields.');
 
-    if (codeInput.trim() !== captcha) {
-      setError('Wrong captcha — a new one has been generated.');
-      refreshCaptcha();
-      return;
-    }
+// inside the component, get the store actions
+const login = useAuthStore((s) => s.login);
+const setCoins = useCoinStore((s) => s.setCoins);
 
-    setError('');
-    setLoading(true);
 
-    try {
-      navigate('/dashboard');
-    } catch {
-      setError('Login failed. Please try again.');
-      setLoading(false);
-    }
-  };
+// updated handleLogin
+const handleLogin = async () => {
+  if (!username.trim() || !password.trim())
+    return setError("Please fill in all fields.");
+
+  if (codeInput.trim() !== captcha) {
+    setError("Wrong captcha — a new one has been generated.");
+    refreshCaptcha();
+    return;
+  }
+
+  setError("");
+  setLoading(true);
+
+  try {
+    const res = await loginUser({ username: username.trim(), password });
+
+    // persist token
+    if (res.token) localStorage.setItem("token", res.token);
+
+    // store user data
+   login(res.data.user);
+    console.log("User logged in:", res.data);
+
+    // seed coins from the user object returned by the API
+    setCoins(res.data.user?.coins ?? 0);
+console.log("Coins set to:", res.data.user?.coins );
+
+    navigate("/dashboard");
+  } catch (err) {
+    setError(err?.response?.data?.message || "Login failed. Please try again.");
+    refreshCaptcha();
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     // ── Full-page wrapper ────────────────────────────────────────────────────
