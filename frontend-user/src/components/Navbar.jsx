@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCoinStore } from '../store/coinStore';
+import { logoutUser } from '../api/userService';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'HOME',       icon: 'ri-home-4-line',    path: '/dashboard' },
@@ -78,15 +79,22 @@ const Navbar = () => {
 
   const activeKey = getActiveKey();
 
-  const handleNavClick = (key, path) => {
-    if (key === 'logout') {
+  const handleNavClick = async (key, path) => {
+  if (key === 'logout') {
+    try {
+      await logoutUser(); // clears the cookie on the server
+    } catch {
+      // silent fail — still clear local state
+    } finally {
       logout();
       setCoins(0);
+      localStorage.removeItem("token");
       navigate('/');
-    } else if (path) {
-      navigate(path);
     }
-  };
+  } else if (path) {
+    navigate(path);
+  }
+};
 
   return (
     <header className="
