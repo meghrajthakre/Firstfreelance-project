@@ -26,18 +26,22 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "http://localhost:3000",
   "https://firstfreelance-project.vercel.app",
   "https://superadmin-phi-eight.vercel.app"
-
 ];
-app.use(cors({
 
+app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
-    if (allowedOrigins.includes(origin))
+
+    if (allowedOrigins.includes(origin)) {
       return cb(null, true);
-    cb(new Error("Not allowed by CORS"));
+    }
+
+    console.log("❌ Blocked by CORS:", origin);
+    return cb(null, false); // ❗ error throw mat karo
   },
   credentials: true
 }));
