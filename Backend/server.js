@@ -61,14 +61,14 @@ const globalLimiter = rateLimit({
 
 
 // ── Health check ──────────────────────────────────────────────────────────────
-app.get("/health", (_req, res) =>
-  res.status(200).json({
-    success: true,
-    message: "Betting Dashboard API is healthy",
-    environment: NODE_ENV,
-    timestamp: new Date().toISOString(),
-  })
-);
+app.get("/", (req, res) => {
+  res.send("Betting API Running 🚀");
+});
+
+// HEAD request fix
+app.head("/", (req, res) => {
+  res.status(200).end();
+});
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use(cookieParser());
