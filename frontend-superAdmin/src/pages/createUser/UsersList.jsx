@@ -5,6 +5,7 @@ import SearchBar from "./SearchBar";
 import UsersTable from "./UsersTable";
 import ChangePasswordModal from "./ChangePasswordModal";
 import DeleteConfirmModal from "./DeleteConfirmModal";
+import EditCoinsModal from "./Editcoinsmodal";
 
 export default function UsersList({ onGoCreate }) {
   const [users, setUsers] = useState([]);
@@ -14,6 +15,7 @@ export default function UsersList({ onGoCreate }) {
 
   const [pwModal, setPwModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
+  const [coinsModal, setCoinsModal] = useState(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -34,6 +36,13 @@ export default function UsersList({ onGoCreate }) {
   const handleSearch = () => {
     fetchUsers();
   };
+
+  const handleCoinsUpdate = (id, newCoins) => {
+  setUsers((u) =>
+    u.map((x) => (x._id === id ? { ...x, coins: newCoins } : x))
+  );
+  setCoinsModal(null);
+};
 
   const handleToggle = async (id) => {
     // Optional: Add confirmation dialog
@@ -102,6 +111,7 @@ export default function UsersList({ onGoCreate }) {
           onToggle={handleToggle}
           onChangePassword={(user) => setPwModal(user)}
           onDelete={(user) => setDeleteModal(user)}
+          onEditCoins={(user) => setCoinsModal(user)} 
         />
 
         {filteredUsers.length > 0 && (
@@ -125,6 +135,13 @@ export default function UsersList({ onGoCreate }) {
         onClose={() => setDeleteModal(null)}
         onConfirm={handleDelete}
       />
+
+      <EditCoinsModal
+        isOpen={!!coinsModal}
+        user={coinsModal}
+        onClose={() => setCoinsModal(null)}
+        onSuccess={handleCoinsUpdate}
+/>
     </div>
   );
 }
