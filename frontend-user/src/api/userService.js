@@ -5,3 +5,6 @@ export const loginUser = (data) =>
 
 export const logoutUser = () =>
   API.post("/auth/logout").then((r) => r.data);
+
+export const getMe = () =>
+  API.get("/auth/me").then((r) => r.data);

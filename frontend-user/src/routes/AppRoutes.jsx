@@ -14,7 +14,6 @@ import HomePage from '../pages/HomePage'
 const AppRoutes = () => {
     return (
 
-        <BrowserRouter>
 
             <Routes>
                 {/* Public */}
@@ -29,7 +28,6 @@ const AppRoutes = () => {
                 </Route>
                 <Route path="*" element={<NotFound />} />
             </Routes>
-        </BrowserRouter>
 
     )
 }

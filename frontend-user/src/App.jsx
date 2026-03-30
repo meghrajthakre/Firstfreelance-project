@@ -1,11 +1,16 @@
 import React from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import AppRoutes from './routes/AppRoutes'
+import { useAuthInit } from './hooks/useAuthInit';
 
 const App = () => {
-  return (
-  <AppRoutes />
-  )
-}
+  useAuthInit(); // initialize auth state on app load
 
-export default App
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+};
+
+export default App;
