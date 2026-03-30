@@ -10,6 +10,7 @@ const MainLayout = () => {
   return (
 
     <div>
+      
 
       <Navbar />
       <MarqueeBanner />
