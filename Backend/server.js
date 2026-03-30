@@ -24,28 +24,22 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-
 const allowedOrigins = [
   "http://localhost:5173",
-  "http://localhost:5174",
   "http://localhost:3000",
-  "https://firstfreelance-project.vercel.app"
+  "firstfreelance-project.vercel.app",
+
 ];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS blocked: " + origin));
-    }
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin))
+      return cb(null, true);
+    cb(new Error("Not allowed by CORS"));
   },
   credentials: true
 }));
-
-app.options("*", cors());
 
 // ── Body parsing & cookie parser ──────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));       // Guard against large payload attacks
@@ -68,14 +62,14 @@ const globalLimiter = rateLimit({
 
 
 // ── Health check ──────────────────────────────────────────────────────────────
-app.get("/", (req, res) => {
-  res.send("Betting API Running 🚀");
-});
-
-// HEAD request fix
-app.head("/", (req, res) => {
-  res.status(200).end();
-});
+app.get("/", (_req, res) =>
+  res.status(200).json({
+    success: true,
+    message: "Betting Dashboard API is healthy",
+    environment: NODE_ENV,
+    timestamp: new Date().toISOString(),
+  })
+);
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use(cookieParser());
