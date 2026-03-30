@@ -10,11 +10,9 @@ import DashboardRoutes from './DashboardRoutes'
 import DashboardLayout from '../layout/DashboardLayout'
 import NotFound from '../pages/NotFound'
 import HomePage from '../pages/HomePage'
-import { useAuthInit } from '../hooks/useAuthInit'
 
 const AppRoutes = () => {
     return (
-        useAuthInit(), // initialize auth on app start
 
             <Routes>
                 {/* Public */}
