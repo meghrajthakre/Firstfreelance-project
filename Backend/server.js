@@ -24,21 +24,28 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
+
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  "https://firstfreelance-project.vercel.app"
 ];
-app.use(cors({
 
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
-    if (allowedOrigins.includes(origin))
-      return cb(null, true);
-    cb(new Error("Not allowed by CORS"));
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS blocked: " + origin));
+    }
   },
   credentials: true
 }));
+
+app.options("*", cors());
 
 // ── Body parsing & cookie parser ──────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));       // Guard against large payload attacks
