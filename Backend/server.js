@@ -28,8 +28,8 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  process.env.CLIENT_URL,           
-  process.env.ADMIN_URL,            
+  "https://firstfreelance-project.vercel.app",
+  "https://superadmin-phi-eight.vercel.app"
 ].filter(Boolean);                  
 
 const corsOptions = {
