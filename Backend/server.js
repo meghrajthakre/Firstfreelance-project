@@ -59,7 +59,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("/*", cors(corsOptions)); // Handle preflight for ALL routes explicitly
 
 // ── Body parsing & cookie parser ──────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));       // Guard against large payload attacks
