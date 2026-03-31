@@ -23,28 +23,43 @@ const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
 
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  "http://localhost:3000",
-  "https://firstfreelance-project.vercel.app",
-  "https://superadmin-phi-eight.vercel.app"
-];
+  process.env.CLIENT_URL,           
+  process.env.ADMIN_URL,            
+].filter(Boolean);                  
 
-app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server requests (Postman, curl, health checks)
+    if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
-      return cb(null, true);
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Blocked request from origin: ${origin}`);
+      callback(new Error(`CORS policy: origin '${origin}' is not allowed`));
     }
-
-    console.log("❌ Blocked by CORS:", origin);
-    return cb(null, false); // ❗ error throw mat karo
   },
-  credentials: true
-}));
+  credentials: true,                // Allow cookies / Authorization headers
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+  ],
+  exposedHeaders: ["X-Total-Count", "X-Page-Count"], // expose custom headers to client if needed
+  maxAge: 86400,                    // Cache preflight response for 24h (reduces OPTIONS spam)
+  optionsSuccessStatus: 200,        // Some legacy browsers choke on 204
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Handle preflight for ALL routes explicitly
 
 // ── Body parsing & cookie parser ──────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));       // Guard against large payload attacks

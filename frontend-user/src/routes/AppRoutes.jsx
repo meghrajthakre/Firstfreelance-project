@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 import LoginPage from '../pages/Login'
 import UserDashboard from '../pages/Userdashboard'
-import Footer from '../pages/Footer'
 
 import MainLayout from '../layout/MainLayout'
 import DashboardRoutes from './DashboardRoutes'

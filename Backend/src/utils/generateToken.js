@@ -31,10 +31,9 @@ const IS_PROD = () => process.env.NODE_ENV === "production";
 /** httpOnly cookie options for access token */
 const accessCookieOptions = () => ({
   httpOnly: true,
-  secure: IS_PROD(),
-  sameSite: IS_PROD() ? "strict" : "lax",
+  secure: true,
+  sameSite: "none", //  cross-site ke liye required
   maxAge: 180 * 60 * 1000,
-  path: "/",
 });
 
 /** Attach access token as httpOnly cookie to the response */
