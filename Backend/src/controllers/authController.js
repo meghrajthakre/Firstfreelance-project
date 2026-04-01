@@ -25,7 +25,7 @@ const login = asyncHandler(async (req, res) => {
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });
 
-  setAuthCookies(res, accessToken);
+  setAuthCookies(res, accessToken, user.role);
 
   return ok(res, 200, "Login successful", {
     user: {

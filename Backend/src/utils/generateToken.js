@@ -36,14 +36,16 @@ const accessCookieOptions = () => ({
   maxAge: 180 * 60 * 1000,
 });
 
-/** Attach access token as httpOnly cookie to the response */
-const setAuthCookies = (res, accessToken) => {
-  res.cookie("accessToken", accessToken, accessCookieOptions());
+const COOKIE_NAME = (role) => role === "superadmin" ? "sa_accessToken" : "accessToken";
+
+const setAuthCookies = (res, accessToken, role) => {
+  res.cookie(COOKIE_NAME(role), accessToken, accessCookieOptions());
 };
 
-/** Clear access token cookie */
 const clearAuthCookies = (res) => {
-  res.clearCookie("accessToken", { httpOnly: true, secure: IS_PROD(), path: "/" });
+  const opts = { httpOnly: true, secure: true, sameSite: "none", path: "/" };
+  res.clearCookie("sa_accessToken", opts);
+  res.clearCookie("accessToken", opts);
 };
 
 module.exports = {
