@@ -218,7 +218,7 @@ const handleLogin = async () => {
           <p
             role="alert"
             className="
-              text-(--color-error)
+              text-red-500
               text-[13px] font-semibold font-nunito
               text-center mt-2 mb-0
             "
