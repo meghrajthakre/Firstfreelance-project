@@ -16,22 +16,18 @@ const adminRoutes = require("./src/routes/adminRoutes");
 const masterRoutes = require("./src/routes/masterRoutes");
 const superUserRoutes = require("./src/routes/superadminUserRoutes");
 
-
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
-
-
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
- " https://firstfreelance-project.vercel.app",
-  "https://firstfreelance-project-git-main-meghrajthakres-projects.vercel.app/",
-  "https://superadmin-phi-eight.vercel.app"
-].filter(Boolean);                  
+  " https://firstfreelance-project.vercel.app",
+  "https://superadmin-phi-eight.vercel.app",
+].filter(Boolean);
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -45,7 +41,7 @@ const corsOptions = {
       callback(new Error(`CORS policy: origin '${origin}' is not allowed`));
     }
   },
-  credentials: true,                // Allow cookies / Authorization headers
+  credentials: true, // Allow cookies / Authorization headers
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
@@ -55,20 +51,16 @@ const corsOptions = {
     "Origin",
   ],
   exposedHeaders: ["X-Total-Count", "X-Page-Count"], // expose custom headers to client if needed
-  maxAge: 86400,                    // Cache preflight response for 24h (reduces OPTIONS spam)
-  optionsSuccessStatus: 200,        // Some legacy browsers choke on 204
+  maxAge: 86400, // Cache preflight response for 24h (reduces OPTIONS spam)
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
 };
 
 app.use(cors(corsOptions));
 
 // ── Body parsing & cookie parser ──────────────────────────────────────────────
-app.use(express.json({ limit: "10kb" }));       // Guard against large payload attacks
+app.use(express.json({ limit: "10kb" })); // Guard against large payload attacks
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
-
-
-
-
 
 /** Global limiter — all routes */
 const globalLimiter = rateLimit({
@@ -76,10 +68,11 @@ const globalLimiter = rateLimit({
   max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: "Too many requests, please try again later." },
+  message: {
+    success: false,
+    message: "Too many requests, please try again later.",
+  },
 });
-
-
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/", (_req, res) =>
@@ -88,7 +81,7 @@ app.get("/", (_req, res) =>
     message: "Betting Dashboard API is healthy",
     environment: NODE_ENV,
     timestamp: new Date().toISOString(),
-  })
+  }),
 );
 
 // ── API Routes ────────────────────────────────────────────────────────────────
@@ -101,7 +94,6 @@ app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/superadmin/users", superUserRoutes);
 app.use("/api/master", masterRoutes);
 app.use("/api/admin", adminRoutes);
-
 
 // ── 404 + global error handler (must be last) ─────────────────────────────────
 app.use(notFound);
@@ -130,4 +122,4 @@ const start = async () => {
 
 start();
 
-module.exports = app; 
+module.exports = app;
