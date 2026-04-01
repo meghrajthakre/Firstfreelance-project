@@ -22,3 +22,7 @@ export const changeUserPassword = (id, password, confirmPassword) =>
   api
     .patch(`/superadmin/users/${id}/password`, { password, confirmPassword })
     .then((r) => r.data);
+
+export const loginUser = (username, password) =>
+  api.post("/auth/login", { username: username.trim().toLowerCase(), password })
+     .then((r) => r.data);

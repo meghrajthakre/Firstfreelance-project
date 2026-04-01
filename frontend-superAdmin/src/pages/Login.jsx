@@ -1,4 +1,5 @@
 import { useState } from "react";
+ import { loginUser } from "../services/userService"; // adjust path
 
 function EyeIcon({ open }) {
   return open ? (
@@ -13,10 +14,6 @@ function EyeIcon({ open }) {
   );
 }
 
-// ─── CONFIG ───────────────────────────────────────────────────────────────────
-// Set this to your backend base URL, or use an env var (Vite: import.meta.env.VITE_API_URL)
-const API_BASE = import.meta.env?.VITE_API_URL ?? "http://localhost:5000/api";
-// ──────────────────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const [form, setForm]       = useState({ username: "", password: "" });
@@ -33,61 +30,34 @@ export default function LoginPage() {
     return e;
   };
 
-  const handleSubmit = async () => {
-    // 1. Client-side validation
-    const e = validate();
-    setErrors(e);
-    if (Object.keys(e).length) return;
 
-    setLoading(true);
+const handleSubmit = async () => {
+  const e = validate();
+  setErrors(e);
+  if (Object.keys(e).length) return;
 
-    try {
-      // 2. Call POST /auth/login
-      //    `credentials: "include"` is required so the browser stores the
-      //    httpOnly access + refresh token cookies that the server sets.
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",           // ← stores httpOnly cookies
-        body: JSON.stringify({
-          username: form.username.trim().toLowerCase(),
-          password: form.password,
-        }),
-      });
+  setLoading(true);
 
-      const data = await res.json();
+  try {
+    await loginUser(form.username, form.password);
 
-      // 3. Handle non-2xx responses
-      if (!res.ok) {
-        // The server may return { message } or { errors: { field: msg } }
-        if (data?.errors && typeof data.errors === "object") {
-          // Field-level errors (e.g. from your validateBody middleware)
-          setErrors(data.errors);
-        } else {
-          // Generic error — show under password field (matches your 401 pattern)
-          setErrors({ password: data?.message ?? "Invalid username or password" });
-        }
-        return;
-      }
+    setToast("Login successful! Redirecting…");
+    setTimeout(() => {
+      window.location.href = "/superadmin/dashboard";
+    }, 1200);
 
-      // 4. Success — cookies are now set by the browser automatically.
-      //    Show toast, then redirect to the dashboard (or wherever you need).
-      setToast("Login successful! Redirecting…");
-
-      setTimeout(() => {
-        // Replace with your router's navigate() if using react-router:
-        // navigate("/superadmin/dashboard");
-        window.location.href = "/superadmin/dashboard";
-      }, 1200);
-
-    } catch (err) {
-      // Network / CORS / server-down errors
-      console.error("Login error:", err);
-      setErrors({ password: "Unable to reach the server. Please try again." });
-    } finally {
-      setLoading(false);
+  } catch (err) {
+    // Axios throws on non-2xx, so err.response holds the server payload
+    const data = err.response?.data;
+    if (data?.errors && typeof data.errors === "object") {
+      setErrors(data.errors);
+    } else {
+      setErrors({ password: data?.message ?? "Invalid username or password" });
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const set = (k, v) => {
     setForm(p => ({ ...p, [k]: v }));
