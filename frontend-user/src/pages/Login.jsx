@@ -212,20 +212,38 @@ const handleLogin = async () => {
             focus:ring-(--color-accent)/30
           `}
         />
+          {error && (
+            <div
+              role="alert"
+              className="
+                flex items-start gap-2
+                mt-3 px-3 py-2.5
+                rounded-md
+                bg-red-900/30
+                border border-red-500/40
+              "
+            >
+              {/* icon */}
+              <svg
+                className="flex-shrink-0 mt-[1px] text-red-400"
+                width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
 
-        {/* Error message */}
-        {error && (
-          <p
-            role="alert"
-            className="
-              text-red-500
-              text-[13px] font-semibold font-nunito
-              text-center mt-2 mb-0
-            "
-          >
-            {error}
-          </p>
-        )}
+              <p className="
+                text-red-300
+                text-[13px] font-semibold font-nunito
+                leading-snug m-0
+              ">
+                {error}
+              </p>
+            </div>
+          )}
 
         {/* Submit button */}
         <div className="flex justify-center mt-6">
