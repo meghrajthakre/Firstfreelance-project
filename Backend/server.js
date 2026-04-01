@@ -25,7 +25,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  " https://firstfreelance-project.vercel.app",
+  "https://firstfreelance-project.vercel.app",
   "https://superadmin-phi-eight.vercel.app",
 ].filter(Boolean);
 
