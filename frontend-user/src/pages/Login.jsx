@@ -66,22 +66,39 @@ const handleLogin = async () => {
   setLoading(true);
 
   try {
+    // res = { success, message, data: { user: { ... } } }
     const res = await loginUser({ username: username.trim(), password });
 
-    // persist token
-    if (res.token) localStorage.setItem("token", res.token);
+    const user = res?.data?.user;
+    if (!user) throw new Error("Unexpected server response.");
 
-    // store user data
-   login(res.data.user);
-    console.log("User logged in:", res.data);
-
-    // seed coins from the user object returned by the API
-    setCoins(res.data.user?.coins ?? 0);
-console.log("Coins set to:", res.data.user?.coins );
+    // your backend sets httpOnly cookie — no token in body
+    // only store user in zustand
+    login(user);
+    setCoins(user.coins ?? 0);
 
     navigate("/dashboard");
+
   } catch (err) {
-    setError(err?.response?.data?.message || "Login failed. Please try again.");
+    const status = err?.response?.status;
+    const data   = err?.response?.data;
+
+    if (Array.isArray(data?.errors) && data.errors.length > 0) {
+      // Zod validation errors: [{ field, message }]
+      setError(data.errors[0].message);
+    } else if (data?.message) {
+      // AppError: { success: false, message: "..." }
+      setError(data.message);
+    } else if (status === 429) {
+      setError("Too many attempts. Please wait and try again.");
+    } else if (status >= 500) {
+      setError("Server error. Please try again later.");
+    } else if (!err?.response) {
+      setError("Cannot reach the server. Check your connection.");
+    } else {
+      setError("Login failed. Please try again.");
+    }
+
     refreshCaptcha();
   } finally {
     setLoading(false);
