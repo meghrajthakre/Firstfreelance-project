@@ -2,7 +2,6 @@
 require("dotenv").config();
 
 const express = require("express");
-app.set("trust proxy", 1);
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
@@ -19,6 +18,8 @@ const superUserRoutes = require("./src/routes/superadminUserRoutes");
 
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
+app.set("trust proxy", 1);
+
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
