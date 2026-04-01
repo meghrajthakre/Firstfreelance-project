@@ -40,10 +40,9 @@ const LoginPage = () => {
   const [loading,   setLoading]   = useState(false);
 
   const refreshCaptcha = useCallback(() => {
-    setCaptcha(generateCaptcha());
-    setCodeInput('');
-    setError('');
-  }, []);
+  setCaptcha(generateCaptcha());
+  setCodeInput('');
+}, []);
 
 
 // inside the component, get the store actions
@@ -58,25 +57,22 @@ const handleLogin = async () => {
 
   if (codeInput.trim() !== captcha) {
     setError("Wrong captcha — a new one has been generated.");
-    refreshCaptcha();
-    return;
+    setCaptcha(generateCaptcha()); // just reset captcha
+    setCodeInput('');              // and input
+    return;                        // keep the error visible
   }
 
   setError("");
   setLoading(true);
 
   try {
-    // res = { success, message, data: { user: { ... } } }
     const res = await loginUser({ username: username.trim(), password });
 
     const user = res?.data?.user;
     if (!user) throw new Error("Unexpected server response.");
 
-    // your backend sets httpOnly cookie — no token in body
-    // only store user in zustand
     login(user);
     setCoins(user.coins ?? 0);
-
     navigate("/dashboard");
 
   } catch (err) {
@@ -84,10 +80,8 @@ const handleLogin = async () => {
     const data   = err?.response?.data;
 
     if (Array.isArray(data?.errors) && data.errors.length > 0) {
-      // Zod validation errors: [{ field, message }]
       setError(data.errors[0].message);
     } else if (data?.message) {
-      // AppError: { success: false, message: "..." }
       setError(data.message);
     } else if (status === 429) {
       setError("Too many attempts. Please wait and try again.");
@@ -99,7 +93,10 @@ const handleLogin = async () => {
       setError("Login failed. Please try again.");
     }
 
-    refreshCaptcha();
+    // only reset captcha visuals, NOT the error
+    setCaptcha(generateCaptcha());
+    setCodeInput('');
+
   } finally {
     setLoading(false);
   }
