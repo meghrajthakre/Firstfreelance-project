@@ -1,5 +1,38 @@
 import api from "../constants/api";
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+export const loginUser = async (username, password) => {
+  const res = await api.post("/auth/login", {
+    username: username.trim().toLowerCase(),
+    password,
+  });
+
+  // Store token in sessionStorage so the axios interceptor
+  // can attach it as Authorization: Bearer <token> on every request.
+  // This is the mobile fix — cookies are often blocked on mobile browsers.
+  const token = res.data?.data?.accessToken;
+  if (token) {
+    sessionStorage.setItem("accessToken", token);
+  }
+
+  return res.data;
+};
+
+export const logoutUser = async () => {
+  try {
+    await api.post("/auth/logout");
+  } finally {
+    // Always clear local token even if server request fails
+    sessionStorage.removeItem("accessToken");
+  }
+};
+
+export const getMe = () =>
+  api.get("/auth/me").then((r) => r.data);
+
+// ── Users (superadmin) ────────────────────────────────────────────────────────
+
 export const getUsers = (params) =>
   api.get("/superadmin/users", { params }).then((r) => r.data);
 
@@ -22,7 +55,3 @@ export const changeUserPassword = (id, password, confirmPassword) =>
   api
     .patch(`/superadmin/users/${id}/password`, { password, confirmPassword })
     .then((r) => r.data);
-
-export const loginUser = (username, password) =>
-  api.post("/auth/login", { username: username.trim().toLowerCase(), password })
-     .then((r) => r.data);

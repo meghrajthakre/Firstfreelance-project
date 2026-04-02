@@ -1,5 +1,5 @@
 import { useState } from "react";
- import { loginUser } from "../services/userService"; // adjust path
+import { loginUser } from "../services/userService";
 
 function EyeIcon({ open }) {
   return open ? (
@@ -14,7 +14,6 @@ function EyeIcon({ open }) {
   );
 }
 
-
 export default function LoginPage() {
   const [form, setForm]       = useState({ username: "", password: "" });
   const [showPass, setShow]   = useState(false);
@@ -22,7 +21,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast]     = useState(null);
 
-  // Client-side validation
   const validate = () => {
     const e = {};
     if (!form.username.trim()) e.username = "Username is required";
@@ -30,34 +28,33 @@ export default function LoginPage() {
     return e;
   };
 
+  const handleSubmit = async () => {
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length) return;
 
-const handleSubmit = async () => {
-  const e = validate();
-  setErrors(e);
-  if (Object.keys(e).length) return;
+    setLoading(true);
+    try {
+      // loginUser now stores the token in sessionStorage internally.
+      // The axios interceptor picks it up automatically for all future requests.
+      await loginUser(form.username, form.password);
 
-  setLoading(true);
+      setToast("Login successful! Redirecting…");
+      setTimeout(() => {
+        window.location.href = "/superadmin/dashboard";
+      }, 1200);
 
-  try {
-    await loginUser(form.username, form.password);
-
-    setToast("Login successful! Redirecting…");
-    setTimeout(() => {
-      window.location.href = "/superadmin/dashboard";
-    }, 1200);
-
-  } catch (err) {
-    // Axios throws on non-2xx, so err.response holds the server payload
-    const data = err.response?.data;
-    if (data?.errors && typeof data.errors === "object") {
-      setErrors(data.errors);
-    } else {
-      setErrors({ password: data?.message ?? "Invalid username or password" });
+    } catch (err) {
+      const data = err.response?.data;
+      if (data?.errors && typeof data.errors === "object") {
+        setErrors(data.errors);
+      } else {
+        setErrors({ password: data?.message ?? "Invalid username or password" });
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const set = (k, v) => {
     setForm(p => ({ ...p, [k]: v }));
@@ -118,6 +115,9 @@ const handleSubmit = async () => {
                       onChange={e => set("username", e.target.value)}
                       onKeyDown={e => e.key === "Enter" && handleSubmit()}
                       placeholder="Enter your username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      autoComplete="username"
                       className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-slate-600"
                     />
                   </div>
@@ -133,7 +133,7 @@ const handleSubmit = async () => {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Password</label>
-                    <button className="text-xs text-teal-400 hover:text-teal-300 font-medium transition-colors">
+                    <button type="button" className="text-xs text-teal-400 hover:text-teal-300 font-medium transition-colors">
                       Forgot password?
                     </button>
                   </div>
@@ -150,6 +150,7 @@ const handleSubmit = async () => {
                       onChange={e => set("password", e.target.value)}
                       onKeyDown={e => e.key === "Enter" && handleSubmit()}
                       placeholder="Enter your password"
+                      autoComplete="current-password"
                       className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-slate-600"
                     />
                     <button type="button" onClick={() => setShow(p => !p)}
@@ -178,7 +179,10 @@ const handleSubmit = async () => {
                 </label>
 
                 {/* Submit */}
-                <button onClick={handleSubmit} disabled={loading}
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={loading}
                   className="w-full flex items-center justify-center gap-2.5 bg-teal-500 hover:bg-teal-400
                     disabled:opacity-60 disabled:cursor-not-allowed text-[#0d1117] font-bold text-sm
                     py-3 rounded-xl transition-all shadow-lg hover:shadow-teal-500/25 active:scale-[.98] mt-1">

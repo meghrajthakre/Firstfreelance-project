@@ -25,9 +25,10 @@ const login = asyncHandler(async (req, res) => {
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });
 
-  setAuthCookies(res, accessToken, user.role);
+  setAuthCookies(res, accessToken, user.role); // still set cookie for desktop
 
   return ok(res, 200, "Login successful", {
+    accessToken,          // ← ADD: frontend stores this for mobile/header auth
     user: {
       _id: user._id,
       username: user.username,
