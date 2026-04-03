@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getBanner, updateBanner } from "../services/userService"; // adjust path if needed
 
 const DEFAULT_SETTINGS = {
   entryFee: 10,
@@ -35,13 +36,10 @@ function Icon({ d, size = 15, className = "" }) {
   );
 }
 
-/* ── responsive field row: stacks on mobile, side-by-side on sm+ ── */
 function FieldRow({ label, value, onChange, isText = false }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
-      <label className="text-sm font-medium text-gray-700 sm:w-52 sm:shrink-0">
-        {label}
-      </label>
+      <label className="text-sm font-medium text-gray-700 sm:w-52 sm:shrink-0">{label}</label>
       <input
         type={isText ? "text" : "number"}
         value={value}
@@ -62,6 +60,151 @@ function SectionNote({ text }) {
         {text}
       </span>
       <div className="flex-1 h-px bg-gray-100" />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   MARQUEE BANNER MANAGER
+══════════════════════════════════════════ */
+const MAX_CHARS = 500;
+
+function MarqueeBannerManager() {
+  const [text,      setText]     = useState("");
+  const [status,    setStatus]   = useState("loading"); // "loading"|"idle"|"saving"|"ok"|"err"
+  const [charCount, setCharCount] = useState(0);
+
+  useEffect(() => {
+    getBanner()
+      .then(({ data }) => {
+        const t = data?.text || "";
+        setText(t);
+        setCharCount(t.length);
+        setStatus("idle");
+      })
+      .catch(() => setStatus("idle"));
+  }, []);
+
+  const handleChange = (e) => {
+    const val = e.target.value.slice(0, MAX_CHARS);
+    setText(val);
+    setCharCount(val.length);
+    if (status === "ok" || status === "err") setStatus("idle");
+  };
+
+  const handleSave = async () => {
+    if (!text.trim() || status === "saving") return;
+    setStatus("saving");
+    try {
+      await updateBanner(text.trim());
+      setStatus("ok");
+      setTimeout(() => setStatus("idle"), 3500);
+    } catch {
+      setStatus("err");
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+      {/* header */}
+      <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4
+        border-b border-gray-100 bg-gray-50">
+        <div className="flex items-center gap-2">
+          {/* megaphone icon */}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+            stroke="#2E4151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 11l19-9-9 19-2-8-8-2z" />
+          </svg>
+          <span className="text-sm font-semibold text-gray-700">Marquee Banner</span>
+        </div>
+        <span className="text-xs text-gray-400">Visible to all users</span>
+      </div>
+
+      <div className="p-4 sm:p-5 space-y-4">
+
+        {/* live preview */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1.5">
+            Preview
+          </p>
+          <div
+            className="h-9 rounded-lg overflow-hidden flex items-center"
+            style={{ backgroundColor: "#1a2a38" }}
+          >
+            {status === "loading" ? (
+              <span className="px-4 text-xs text-white/30">Loading…</span>
+            ) : text ? (
+              <span
+                className="inline-block whitespace-nowrap animate-marquee font-bold text-[13px]"
+                style={{ color: "#fbbf24", fontFamily: "var(--font-nunito)", letterSpacing: "0.03em" }}
+              >
+                {text}
+              </span>
+            ) : (
+              <span className="px-4 text-xs text-white/25">No banner text set</span>
+            )}
+          </div>
+        </div>
+
+        {/* textarea */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-1.5">
+            Banner Text
+          </p>
+          <textarea
+            rows={3}
+            value={text}
+            onChange={handleChange}
+            disabled={status === "loading" || status === "saving"}
+            placeholder="e.g.  ‖ WELCOME TO Sonu Book GROUP ‖     Jo Group bets Karte he unke Profit ke Saude hataye jayenge"
+            className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-gray-800
+              placeholder:text-gray-300 bg-white
+              focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent
+              disabled:opacity-50 disabled:cursor-not-allowed resize-none transition"
+            style={{ fontFamily: "var(--font-nunito)" }}
+          />
+          <div className="flex justify-end mt-1">
+            <span className={`text-xs font-medium ${charCount >= MAX_CHARS ? "text-red-400" : "text-gray-300"}`}>
+              {charCount} / {MAX_CHARS}
+            </span>
+          </div>
+        </div>
+
+        {/* save row */}
+        <div className="flex items-center gap-3 pt-1">
+          <button
+            onClick={handleSave}
+            disabled={status === "saving" || status === "loading" || !text.trim()}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white
+              hover:opacity-90 active:scale-[0.98]
+              disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            style={{ backgroundColor: "#2E4151" }}
+          >
+            {status === "saving" ? (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 12a9 9 0 11-6.219-8.56" />
+              </svg>
+            ) : (
+              <Icon d="M20 6L9 17l-5-5" size={14} />
+            )}
+            {status === "saving" ? "Saving…" : "Save Banner"}
+          </button>
+
+          {status === "ok" && (
+            <span className="text-sm font-medium text-emerald-500">
+              ✓ Saved — updates reflect within 30 s
+            </span>
+          )}
+          {status === "err" && (
+            <span className="text-sm font-medium text-red-400">
+              ✗ Failed to save. Try again.
+            </span>
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -95,7 +238,6 @@ function EditSettingsForm({ settings, onBack, onSave }) {
           <div className="h-1 w-full bg-gradient-to-r from-teal-400 to-teal-600" />
 
           <div className="p-4 sm:p-6 md:p-8 flex flex-col gap-4 sm:gap-5">
-
             <FieldRow label="Entry Fee" value={form.entryFee} onChange={v => set("entryFee", v)} />
             <FieldRow label="Play Fee"  value={form.playFee}  onChange={v => set("playFee", v)} />
             <FieldRow label="Notice"    value={form.notice}   onChange={v => set("notice", v)} isText />
@@ -111,7 +253,6 @@ function EditSettingsForm({ settings, onBack, onSave }) {
             <SectionNote text="0 = Unlock · 1 = Bet Lock" />
             <FieldRow label="Bet Lock" value={form.betLock} onChange={v => set("betLock", v)} />
 
-            {/* Action buttons */}
             <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end
               gap-3 pt-3 border-t border-gray-100 mt-1">
               <button onClick={onBack}
@@ -128,7 +269,7 @@ function EditSettingsForm({ settings, onBack, onSave }) {
                   <>
                     <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24"
                       fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                      <path d="M21 12a9 9 0 11-6.219-8.56" />
                     </svg>
                     Saving…
                   </>
@@ -140,7 +281,6 @@ function EditSettingsForm({ settings, onBack, onSave }) {
                 )}
               </button>
             </div>
-
           </div>
         </div>
       </div>
@@ -149,7 +289,7 @@ function EditSettingsForm({ settings, onBack, onSave }) {
 }
 
 /* ══════════════════════════════════════════
-   SETTINGS TABLE  (main view)
+   SETTINGS PAGE  (main)
 ══════════════════════════════════════════ */
 export default function SettingsPage() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -186,17 +326,21 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6">
 
-        {/* Heading */}
-        <div className="mb-5 sm:mb-6">
+        {/* heading */}
+        <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Settings</h1>
           <p className="text-sm text-gray-400 mt-1">Manage platform fees, notices, and game configuration.</p>
         </div>
 
+        {/* ── Marquee Banner Manager ─────────────────────────────────────── */}
+        <MarqueeBannerManager />
+
+        {/* ── Settings table ────────────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
-          {/* Toolbar */}
+          {/* toolbar */}
           <div className="flex flex-col xs:flex-row items-start xs:items-center justify-end
             px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 gap-2">
             <div className="flex items-center gap-2 w-full xs:w-auto">
@@ -210,7 +354,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* ── Desktop table (hidden on mobile) ── */}
+          {/* desktop table */}
           <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
@@ -250,7 +394,7 @@ export default function SettingsPage() {
             </table>
           </div>
 
-          {/* ── Mobile card (visible only on mobile) ── */}
+          {/* mobile card */}
           <div className="block sm:hidden">
             {visible ? (
               <div className="p-4 border-b border-gray-100 space-y-3">
@@ -285,7 +429,7 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* Summary cards — 2 cols on mobile, 4 on sm+ */}
+          {/* summary cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5
             border-t border-gray-100 bg-gray-50/60">
             {[
@@ -316,7 +460,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Toast */}
+      {/* toast */}
       {toast && (
         <div className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 flex items-center gap-2
           px-4 sm:px-5 py-2.5 sm:py-3 bg-emerald-500 text-white text-sm font-semibold

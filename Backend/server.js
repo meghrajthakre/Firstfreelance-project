@@ -15,6 +15,7 @@ const superAdminRoutes = require("./src/routes/superAdminRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
 const masterRoutes = require("./src/routes/masterRoutes");
 const superUserRoutes = require("./src/routes/superadminUserRoutes");
+const bannerRoutes = require("./src/routes/bannerRoutes");
 
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
@@ -96,6 +97,7 @@ app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/superadmin/users", superUserRoutes);
 app.use("/api/master", masterRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/superadmin/banner", bannerRoutes);
 
 // ── 404 + global error handler (must be last) ─────────────────────────────────
 app.use(notFound);

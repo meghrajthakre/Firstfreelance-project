@@ -78,3 +78,22 @@
   ::-webkit-scrollbar-track  { background: var(--color-bg-main); }
   ::-webkit-scrollbar-thumb  { background: var(--color-accent); border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--color-banner); }
+
+
+
+  @keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 15s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
