@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { getUsers, toggleUserStatus } from "../../services/userService"; // Add toggleUserStatus import
+import toast, { Toaster } from "react-hot-toast"; // ✅ added
+import { getUsers, toggleUserStatus } from "../../services/userService";
 import PageHeader from "./PageHeader";
 import SearchBar from "./SearchBar";
 import UsersTable from "./UsersTable";
@@ -11,7 +12,7 @@ export default function UsersList({ onGoCreate }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [toggleLoading, setToggleLoading] = useState(false); // Optional: track toggle loading state
+  const [toggleLoading, setToggleLoading] = useState(false);
 
   const [pwModal, setPwModal] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
@@ -38,14 +39,13 @@ export default function UsersList({ onGoCreate }) {
   };
 
   const handleCoinsUpdate = (id, newCoins) => {
-  setUsers((u) =>
-    u.map((x) => (x._id === id ? { ...x, coins: newCoins } : x))
-  );
-  setCoinsModal(null);
-};
+    setUsers((u) =>
+      u.map((x) => (x._id === id ? { ...x, coins: newCoins } : x))
+    );
+    setCoinsModal(null);
+  };
 
   const handleToggle = async (id) => {
-    // Optional: Add confirmation dialog
     const user = users.find((u) => u._id === id);
     const action = user?.isActive ? "block" : "activate";
     const confirmed = window.confirm(
@@ -56,20 +56,14 @@ export default function UsersList({ onGoCreate }) {
 
     try {
       setToggleLoading(true);
-      // Call the API to toggle user status
       await toggleUserStatus(id);
-
-      // Update local state after successful API call
       setUsers((u) =>
         u.map((x) => (x._id === id ? { ...x, isActive: !x.isActive } : x)),
       );
-
-      // Optional: Show success message
-      // You can add a toast notification here
+      toast.success(`User ${action}d successfully`); // ✅ added
     } catch (error) {
       console.error("Failed to toggle user status:", error);
-      // Optional: Show error message
-      alert("Failed to update user status. Please try again.");
+      toast.error("Failed to update user status. Please try again."); // ✅ added
     } finally {
       setToggleLoading(false);
     }
@@ -111,11 +105,11 @@ export default function UsersList({ onGoCreate }) {
           onToggle={handleToggle}
           onChangePassword={(user) => setPwModal(user)}
           onDelete={(user) => setDeleteModal(user)}
-          onEditCoins={(user) => setCoinsModal(user)} 
+          onEditCoins={(user) => setCoinsModal(user)}
         />
 
         {filteredUsers.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-1  00 text-xs text-gray-400 font-medium bg-gray-50/30">
+          <div className="px-6 py-3 border-t border-gray-100 text-xs text-gray-400 font-medium bg-gray-50/30">
             Showing {filteredUsers.length} user
             {filteredUsers.length !== 1 ? "s" : ""}
           </div>
@@ -123,25 +117,30 @@ export default function UsersList({ onGoCreate }) {
       </div>
 
       <ChangePasswordModal
-        isOpen={!!pwModal}
-        user={pwModal}
-        onClose={() => setPwModal(null)}
-        onSuccess={handlePasswordChange}
-      />
+      isOpen={!!pwModal}
+      user={pwModal}
+      onClose={() => setPwModal(null)}
+      onSuccess={handlePasswordChange}
+      showToast={(msg, err) => err ? toast.error(msg) : toast.success(msg)} 
+/>
 
-      <DeleteConfirmModal
-        isOpen={!!deleteModal}
-        user={deleteModal}
-        onClose={() => setDeleteModal(null)}
-        onConfirm={handleDelete}
-      />
+    <DeleteConfirmModal
+      isOpen={!!deleteModal}
+      user={deleteModal}
+      onClose={() => setDeleteModal(null)}
+      onConfirm={handleDelete}
+      showToast={(msg, err) => err ? toast.error(msg) : toast.success(msg)} 
+    />
 
       <EditCoinsModal
         isOpen={!!coinsModal}
         user={coinsModal}
         onClose={() => setCoinsModal(null)}
         onSuccess={handleCoinsUpdate}
-/>
+        showToast={(msg, err) => err ? toast.error(msg) : toast.success(msg)} // ✅ added
+      />
+
+      <Toaster position="bottom-right" /> {/* ✅ added */}
     </div>
   );
 }

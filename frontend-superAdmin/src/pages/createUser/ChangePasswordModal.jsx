@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { changeUserPassword } from "../../services/userService";
 
-export default function ChangePasswordModal({ isOpen, user, onClose, onSuccess }) {
+export default function ChangePasswordModal({ isOpen, user, onClose, onSuccess, showToast }) {
   const [form, setForm] = useState({ password: "", confirmPassword: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -13,12 +13,10 @@ export default function ChangePasswordModal({ isOpen, user, onClose, onSuccess }
       setError("Both password fields are required");
       return;
     }
-
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-
     if (form.password.length < 6) {
       setError("Password must be at least 6 characters");
       return;
@@ -32,8 +30,11 @@ export default function ChangePasswordModal({ isOpen, user, onClose, onSuccess }
       onSuccess(user.id, form.password);
       setForm({ password: "", confirmPassword: "" });
       onClose();
+      showToast?.("Password changed successfully"); // ✅
     } catch (e) {
-      setError(e?.response?.data?.message || "Something went wrong.");
+      const msg = e?.response?.data?.message || "Something went wrong.";
+      setError(msg);
+      showToast?.(msg, true); // ✅
     } finally {
       setLoading(false);
     }

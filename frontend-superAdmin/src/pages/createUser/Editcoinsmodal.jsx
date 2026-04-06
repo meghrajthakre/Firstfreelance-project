@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { updateUser } from "../../services/userService";
 
-export default function EditCoinsModal({ isOpen, user, onClose, onSuccess }) {
+export default function EditCoinsModal({ isOpen, user, onClose, onSuccess,showToast }) {
   const [coins, setCoins] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,12 +28,16 @@ export default function EditCoinsModal({ isOpen, user, onClose, onSuccess }) {
       await updateUser(user._id, { coins: value });
       onSuccess(user._id, value);
       onClose();
+      showToast(`Coins updated successfully for ${user.firstName}!`); // ✅ success toast
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to update coins.");
+      const msg = err?.response?.data?.message || "Failed to update coins.";
+      setError(msg);
+      showToast(msg, true); // ✅ error toast too
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -58,7 +62,7 @@ export default function EditCoinsModal({ isOpen, user, onClose, onSuccess }) {
         {/* Current balance */}
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
           <span className="text-xs text-amber-600 font-medium">Current Balance</span>
-          <span className="text-sm font-bold text-amber-700">🪙 {user.coins ?? 0}</span>
+          <span className="text-sm font-bold text-amber-700"> {user.coins ?? 0}</span>
         </div>
 
         {/* Input */}

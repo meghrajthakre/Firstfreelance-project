@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { deleteUser } from "../../services/userService";
 
-export default function DeleteConfirmModal({ isOpen, user, onClose, onConfirm }) {
+export default function DeleteConfirmModal({ isOpen, user, onClose, onConfirm, showToast }) {
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
@@ -10,8 +10,9 @@ export default function DeleteConfirmModal({ isOpen, user, onClose, onConfirm })
       await deleteUser(user.id);
       onConfirm(user.id);
       onClose();
+      showToast?.(`${user?.firstName} deleted successfully`); // ✅
     } catch {
-      // Error handling can be added here
+      showToast?.("Failed to delete user. Please try again.", true); // ✅
     } finally {
       setLoading(false);
     }
