@@ -93,7 +93,7 @@ export default function LoginPage() {
             <div className="h-1 w-full bg-gradient-to-r from-teal-400 via-teal-500 to-teal-600" />
 
             <div className="p-8">
-              <h2 className="text-lg font-bold text-white mb-6">Welcome back</h2>
+              <h2 className="text-lg text-center font-bold text-white mb-6">Welcome back</h2>
 
               <div className="flex flex-col gap-5">
 

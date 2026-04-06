@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { label: "Collection Report",  to: "/superadmin/collection-report", icon: FileBarChart2 },
   { label: "Matches",            to: "/superadmin/matches",           icon: Swords },
   { label: "In Play Matches",    to: "/superadmin/in-play-matches",   icon: Radio },
-  { label: "Change Password",    to: "/superadmin/change-password",   icon: KeyRound },
+  { label: "Profile",            to: "/superadmin/profile",           icon: KeyRound },
   { label: "Settings",           to: "/superadmin/settings",          icon: Settings },
 ];
 
