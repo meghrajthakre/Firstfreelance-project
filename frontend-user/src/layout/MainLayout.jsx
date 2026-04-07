@@ -7,16 +7,23 @@ import Footer from "../pages/Footer";
 
 const MainLayout = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-dvh bg-gray-50">
 
-      {/* Fixed Top Section */}
-      <div className="fixed top-0 left-0 right-0 z-50">
+      {/* Header (Fixed like DHV) */}
+      <header className="fixed top-0 left-0 right-0 z-50">
         <Navbar />
         <MarqueeBanner />
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <main className="flex-1 pt-[100px] px-3 sm:px-4 md:px-6">
+      {/* Content */}
+      <main
+        className="
+          flex-1
+          pt-[calc(56px+36px)]
+          px-3
+          pb-4
+        "
+      >
         <Outlet />
       </main>
 
