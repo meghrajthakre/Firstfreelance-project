@@ -34,7 +34,7 @@ export default function Layout() {
           style={{ backgroundColor: "var(--color-bg-main)" }}
         >
           {/* Content wrapper with safe padding */}
-          <div className="p-3 pb-16 sm:p-6 lg:p-8 pb-safe">
+          <div className="p-3 sm:p-6 lg:p-8 pb-safe">
             <Outlet />
           </div>
         </main>
