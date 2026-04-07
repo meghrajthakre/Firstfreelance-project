@@ -6,9 +6,9 @@ const { getBanner, upsertBanner } = require("../controllers/bannerController"); 
 const { protect } = require("../middleware/authMiddleware");    // adjust to your actual middleware names
 
 // GET  /api/superadmin/banner  — any logged-in user can read the banner
-router.get("/", protect, getBanner);
+router.get("/",  getBanner);
 
 // PUT  /api/superadmin/banner  — only SuperAdmin can write
-router.put("/", protect, upsertBanner);
+router.put("/",protect, upsertBanner);
 
 module.exports = router;
