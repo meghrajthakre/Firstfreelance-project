@@ -9,6 +9,6 @@ const { protect } = require("../middleware/authMiddleware");    // adjust to you
 router.get("/",  getBanner);
 
 // PUT  /api/superadmin/banner  — only SuperAdmin can write
-router.put("/",protect, upsertBanner);
+router.put("/", upsertBanner);
 
 module.exports = router;
