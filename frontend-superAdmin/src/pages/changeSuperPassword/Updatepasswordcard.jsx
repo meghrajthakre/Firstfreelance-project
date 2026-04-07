@@ -1,6 +1,6 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { updateSuperadminProfile } from "../../services/superadminService";
+import { updateSuperadminProfile } from "../../services/superAdminService";
 import Spinner from "../../components/common/Spinner";
 
 function EyeIcon({ open }) {

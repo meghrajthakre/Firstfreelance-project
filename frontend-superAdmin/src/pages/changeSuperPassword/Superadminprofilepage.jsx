@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import toast from "react-hot-toast";
-import { getSuperadminProfile } from "../../services/superadminService";
-import UpdateUsernameCard from "./UpdateUsernameCard";
-import UpdatePasswordCard from "./UpdatePasswordCard";
+import { getSuperadminProfile } from "../../services/superAdminService";
+import UpdateUsernameCard from "../changeSuperPassword/Updateusernamecard";
+import UpdatePasswordCard from "../changeSuperPassword/Updatepasswordcard";
 
 export default function SuperadminProfilePage() {
   const [profile, setProfile] = useState(null);
