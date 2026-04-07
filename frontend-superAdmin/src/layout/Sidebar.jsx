@@ -29,7 +29,7 @@ function NavItem({ label, icon: Icon, isActive, onClick }) {
     <span
       onClick={onClick}
       className={[
-        "group flex items-center gap-3 px-3 py-2.5 rounded-md relative",
+        "group flex items-center gap-3 px-3 py-4 rounded-md relative",
         "transition-all duration-200 cursor-pointer select-none text-sm font-semibold",
         isActive
           ? "bg-white/15 text-white"
