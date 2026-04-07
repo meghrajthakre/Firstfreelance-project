@@ -31,7 +31,8 @@ const updateSuperadminProfile = asyncHandler(async (req, res) => {
   if (!username && !password)
     throw new AppError("Provide a new username or password to update.", 400);
 
-  const superadmin = await User.findById(req.user._id);
+  // FIX: explicitly select +password so comparePassword works
+  const superadmin = await User.findById(req.user._id).select("+password");
   if (!superadmin) throw new AppError("User not found.", 404);
 
   // ── Update username ───────────────────────────────────────
