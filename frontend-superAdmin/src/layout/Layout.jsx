@@ -7,41 +7,34 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-  const closeSidebar  = () => setSidebarOpen(false);
+  const closeSidebar = () => setSidebarOpen(false);
 
   return (
     /*
-      h-screen + flex flex-col = full viewport height, no scroll on the shell.
-      overflow-hidden on the shell prevents any layout bleed.
+      h-[100dvh] fixes mobile viewport height issue (Chrome + Safari)
+      flex flex-col = full vertical layout
+      overflow-hidden = prevent outer scroll
     */
     <div
-      className="h-screen flex flex-col overflow-hidden"
+      className="h-[100dvh] flex flex-col overflow-hidden"
       style={{ backgroundColor: "var(--color-bg-main)" }}
     >
-      {/* ── Navbar (shrink-0 so it never compresses) ── */}
+      {/* ── Navbar ── */}
       <Navbar onMenuClick={toggleSidebar} />
 
-      {/*
-        ── Body row ────────────────────────────────────────────────────────────
-        flex-1        → takes all remaining height below navbar
-        overflow-hidden → children manage their own scroll
-      */}
+      {/* ── Body ── */}
       <div className="flex flex-1 overflow-hidden">
-
-        {/* Sidebar handles its own mobile-fixed / desktop-static positioning */}
+        
+        {/* Sidebar */}
         <Sidebar isOpen={sidebarOpen} onClose={closeSidebar} />
 
-        {/*
-          ── Main content area ────────────────────────────────────────────────
-          flex-1      → fills width next to sidebar on desktop
-          overflow-y-auto → scrollable content, not the whole page
-        */}
+        {/* ── Main Content ── */}
         <main
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto overscroll-contain"
           style={{ backgroundColor: "var(--color-bg-main)" }}
         >
-          {/* Responsive padding: tighter on mobile, roomier on desktop */}
-          <div className="p-3 pb-16 sm:p-6 lg:p-8">
+          {/* Content wrapper with safe padding */}
+          <div className="p-3 sm:p-6 lg:p-8 pb-safe">
             <Outlet />
           </div>
         </main>
