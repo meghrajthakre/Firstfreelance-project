@@ -9,7 +9,7 @@ export default function MarqueeBannerManager() {
   const [status,    setStatus]  = useState("idle"); // "idle" | "loading" | "saving" | "ok" | "err"
   const [charCount, setCharCount] = useState(0);
 
-  // ── Load current banner on mount ─────────────────────────────────────────
+  // ── Load current banner on mount ────────────────────────────────────────
   useEffect(() => {
     setStatus("loading");
     getBanner()
