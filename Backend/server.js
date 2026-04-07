@@ -98,7 +98,7 @@ app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/superadmin/users", superUserRoutes);
 app.use("/api/master", masterRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/superadmin/banner", bannerRoutes);
+app.use("/api/banner", bannerRoutes);
 app.use("/api/superadmin", superRoutes);
 // ── 404 + global error handler (must be last) ─────────────────────────────────
 app.use(notFound);
