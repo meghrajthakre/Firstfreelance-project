@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Megaphone, Save, Loader2 } from "lucide-react";
-import { getBanner, updateBanner } from "../constants/api"; // adjust path if needed
+import { getBanner, updateBanner } from "../services/userService"; // adjust path if needed
 
 const MAX = 500;
 
