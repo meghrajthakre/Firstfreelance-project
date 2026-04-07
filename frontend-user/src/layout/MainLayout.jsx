@@ -17,12 +17,6 @@ const MainLayout = () => {
 
       {/* Content */}
       <main
-        className="
-          flex-1
-          pt-[calc(56px+36px)]
-          px-3
-          pb-4
-        "
       >
         <Outlet />
       </main>
