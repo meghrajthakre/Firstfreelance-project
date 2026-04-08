@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCoinStore } from '../store/coinStore';
 import { logoutUser } from '../api/userService';
+import MarqueeBanner from './MarqueeBanner';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'HOME',       icon: 'ri-home-4-line',    path: '/dashboard' },
@@ -95,62 +96,68 @@ const Navbar = () => {
   };
 
   return (
-    <div className="
-      h-16
-      bg-(--color-primary)
-      shadow-[0_2px_12px_rgba(0,0,0,0.28)]
-      flex items-center justify-between
-      px-2 sm:px-5 border-b border-red-500
-    ">
-      {/* User info */}
+    <div className="flex flex-col">
+      {/* Main nav row */}
       <div className="
-        text-(--color-text-muted) leading-tight font-nunito
-        min-w-0 flex-shrink
+        h-16
+        bg-(--color-primary)
+        shadow-[0_2px_12px_rgba(0,0,0,0.28)]
+        flex items-center justify-between
+        px-2 sm:px-5 border-b border-[rgba(214,228,245,0.15)]
       ">
-        <p className="
-          text-xs sm:text-sm font-bold
-          truncate max-w-[100px] xs:max-w-[150px] sm:max-w-none
+        {/* User info */}
+        <div className="
+          text-(--color-text-muted) leading-tight font-nunito
+          min-w-0 flex-shrink
         ">
-          {username}
-        </p>
-        <p className="text-[11px] sm:text-xs flex items-center gap-1">
-          <CoinIcon />
-          {Number(coins).toLocaleString()}
-        </p>
+          <p className="
+            text-xs sm:text-sm font-bold
+            truncate max-w-[100px] xs:max-w-[150px] sm:max-w-none
+          ">
+            {username}
+          </p>
+          <p className="text-[11px] sm:text-xs flex items-center gap-1">
+            <CoinIcon />
+            {Number(coins).toLocaleString()}
+          </p>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex items-center gap-0.5 sm:gap-2">
+          {NAV_ITEMS.map(({ key, label, icon, path }) => {
+            const isActive = activeKey === key && key !== 'logout';
+
+            return (
+              <button
+                key={key}
+                onClick={() => handleNavClick(key, path)}
+                className={`
+                  relative flex items-center justify-center
+                  gap-1 sm:gap-2
+                  px-2 sm:px-4
+                  py-2 sm:py-1.5
+                  rounded-lg
+                  font-rajdhani text-xs sm:text-sm font-semibold tracking-wide
+                  text-(--color-text-muted)
+                  transition-all duration-150
+                  cursor-pointer
+                  min-w-[40px] sm:min-w-0
+                  ${isActive
+                    ? 'border border-[rgba(214,228,245,0.65)] bg-[rgba(255,255,255,0.12)] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-1/2 after:h-0.5 after:bg-(--color-accent) after:rounded-full'
+                    : 'border border-transparent bg-transparent hover:bg-[rgba(255,255,255,0.12)]'
+                  }
+                `}
+              >
+                <i className={`${icon} text-base sm:text-lg`} />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex items-center gap-0.5 sm:gap-2">
-        {NAV_ITEMS.map(({ key, label, icon, path }) => {
-          const isActive = activeKey === key && key !== 'logout';
-
-          return (
-            <button
-              key={key}
-              onClick={() => handleNavClick(key, path)}
-              className={`
-                relative flex items-center justify-center
-                gap-1 sm:gap-2
-                px-2 sm:px-4
-                py-2 sm:py-1.5
-                rounded-lg
-                font-rajdhani text-xs sm:text-sm font-semibold tracking-wide
-                text-(--color-text-muted)
-                transition-all duration-150
-                cursor-pointer
-                min-w-[40px] sm:min-w-0
-                ${isActive
-                  ? 'border border-[rgba(214,228,245,0.65)] bg-[rgba(255,255,255,0.12)] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-1/2 after:h-0.5 after:bg-(--color-accent) after:rounded-full'
-                  : 'border border-transparent bg-transparent hover:bg-[rgba(255,255,255,0.12)]'
-                }
-              `}
-            >
-              <i className={`${icon} text-base sm:text-lg`} />
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      {/* Marquee banner sits at bottom of navbar */}
+      <MarqueeBanner />
     </div>
   );
 };

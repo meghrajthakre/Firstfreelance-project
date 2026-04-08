@@ -2,7 +2,6 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
-import MarqueeBanner from "../components/MarqueeBanner";
 import Footer from "../pages/Footer";
 
 const MainLayout = () => {
@@ -11,11 +10,10 @@ const MainLayout = () => {
 
       <header className="fixed top-0 left-0 right-0 z-50">
         <Navbar />
-        <MarqueeBanner />
       </header>
 
-      {/* pt-24 = h-16 navbar + h-8 banner = 96px */}
-      <main className="pt-24">
+      {/* pt-24 = h-16 navbar + h-8 banner */}
+      <main className="pt-5">
         <Outlet />
       </main>
 
