@@ -27,26 +27,28 @@ export default function MarqueeBanner() {
   return (
     <div
       className="
-        fixed top-16 left-0 right-0 z-40
+        relative w-full
         h-8
-        bg-(--color-primary)
+        bg-[var(--color-primary)]
         border-b border-[rgba(214,228,245,0.15)]
         overflow-hidden
         flex items-center
       "
     >
-      {/* Scrolling text */}
       <div className="flex animate-marquee whitespace-nowrap">
         {[...Array(3)].map((_, i) => (
-          <span key={i} className="
-            inline-flex items-center gap-3
-            px-8
-            font-rajdhani text-sm font-semibold tracking-widest uppercase
-            text-(--color-text-muted)
-          ">
-            <span className="text-(--color-accent)">★</span>
+          <span
+            key={i}
+            className="
+              inline-flex items-center gap-3
+              px-8
+              font-rajdhani text-xs sm:text-sm font-semibold tracking-widest uppercase
+              text-[var(--color-text-muted)]
+            "
+          >
+            <span className="text-[var(--color-accent)]">★</span>
             {text}
-            <span className="text-(--color-accent)">★</span>
+            <span className="text-[var(--color-accent)]">★</span>
           </span>
         ))}
       </div>
