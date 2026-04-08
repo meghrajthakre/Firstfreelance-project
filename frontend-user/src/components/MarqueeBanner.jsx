@@ -27,7 +27,7 @@ export default function MarqueeBanner() {
   return (
     <div
       className="
-        relative left-0 right-0 z-40
+        fixed top-16 left-0 right-0 z-40
         h-8
         bg-(--color-primary)
         border-b border-[rgba(214,228,245,0.15)]
@@ -35,6 +35,7 @@ export default function MarqueeBanner() {
         flex items-center
       "
     >
+      {/* Scrolling text */}
       <div className="flex animate-marquee whitespace-nowrap">
         {[...Array(3)].map((_, i) => (
           <span key={i} className="

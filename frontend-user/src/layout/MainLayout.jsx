@@ -12,24 +12,19 @@ const MainLayout = () => {
       {/* Header (Fixed like DHV) */}
       <header className="fixed top-0 left-0 right-0 z-50">
         <Navbar />
-
-
+        <MarqueeBanner />
       </header>
 
       {/* Content */}
       <main
       >
-
         <Outlet />
       </main>
 
       {/* Footer */}
       <footer className="mt-auto">
-        <MarqueeBanner />
-
         <Footer />
       </footer>
-      
 
     </div>
   );

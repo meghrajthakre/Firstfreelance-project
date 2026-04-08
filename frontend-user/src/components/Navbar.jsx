@@ -31,14 +31,11 @@ const CoinIcon = () => (
       .coin-shine { animation: shineFlash 2.2s ease-in-out infinite; }
     `}</style>
     <g className="coin-g">
-      {/* depth edge */}
       <ellipse cx="32" cy="35" rx="26" ry="26" fill="#C8960C"/>
-      {/* face rings */}
       <circle cx="32" cy="32" r="26" fill="#F5C518"/>
       <circle cx="32" cy="32" r="22" fill="#F0B800"/>
       <circle cx="32" cy="32" r="20" fill="#F7D23E"/>
       <circle cx="32" cy="32" r="18" fill="#F0B800"/>
-      {/* $ */}
       <text
         x="33" y="37"
         textAnchor="middle"
@@ -48,7 +45,6 @@ const CoinIcon = () => (
         fontSize="20"
         fill="#9A7000"
       >$</text>
-      {/* shine */}
       <ellipse
         cx="22" cy="22" rx="7" ry="4"
         fill="#FFF8C0"
@@ -69,8 +65,8 @@ const Navbar = () => {
   const location = useLocation();
 
   const username = user?.firstName
-  ? `${user.username} ( ${user.firstName} )`
-  : (user?.username ?? 'Guest');
+    ? `${user.username} ( ${user.firstName} )`
+    : (user?.username ?? 'Guest');
 
   const getActiveKey = () => {
     const path = location.pathname;
@@ -82,30 +78,29 @@ const Navbar = () => {
   const activeKey = getActiveKey();
 
   const handleNavClick = async (key, path) => {
-  if (key === 'logout') {
-    try {
-      await logoutUser(); // clears the cookie on the server
-    } catch {
-      // silent fail — still clear local state
-    } finally {
-      logout();
-      setCoins(0);
-      localStorage.removeItem("token");
-      navigate('/');
+    if (key === 'logout') {
+      try {
+        await logoutUser();
+      } catch {
+        // silent fail
+      } finally {
+        logout();
+        setCoins(0);
+        localStorage.removeItem("token");
+        navigate('/');
+      }
+    } else if (path) {
+      navigate(path);
     }
-  } else if (path) {
-    navigate(path);
-  }
-};
+  };
 
   return (
-    <header className="
-      fixed top-0 left-0 right-0 z-50
+    <div className="
       h-16
       bg-(--color-primary)
       shadow-[0_2px_12px_rgba(0,0,0,0.28)]
       flex items-center justify-between
-      px-2 sm:px-5
+      px-2 sm:px-5 border-b border-[rgba(214,228,245,0.15)]
     ">
       {/* User info */}
       <div className="
@@ -156,8 +151,8 @@ const Navbar = () => {
           );
         })}
       </nav>
-    </header>
+    </div>
   );
 };
 
-export default Navbar;  
+export default Navbar;
