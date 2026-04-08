@@ -19,7 +19,9 @@ const AppRoutes = () => {
                 <Route path="/login" element={<LoginPage />} />
                 {/* Protected layout */}
                 <Route element={<MainLayout />}>
+
                     <Route path="/dashboard" element={<UserDashboard />} />
+                    
                     <Route element={<DashboardLayout />}>
                         {DashboardRoutes()}
                     </Route>

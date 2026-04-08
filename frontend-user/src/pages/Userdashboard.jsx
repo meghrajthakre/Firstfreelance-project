@@ -30,7 +30,6 @@ const UserDashboard = () => {
 
 
 
-      <MarqueeBanner />
 
       <main className="pt-[120px] pb-16 px-3 sm:px-5 flex justify-center">
 
