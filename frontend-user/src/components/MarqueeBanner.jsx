@@ -50,7 +50,7 @@ export default function MarqueeBanner() {
           tracking-wide
         "
       >
-        ✨ {text} ✨
+         {text} 
       </span>
     </div>
   );
