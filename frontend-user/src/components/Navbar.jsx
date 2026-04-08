@@ -68,7 +68,9 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const username = user?.username ?? 'Guest';
+  const username = user?.firstName
+  ? `${user.username} ( ${user.firstName} )`
+  : (user?.username ?? 'Guest');
 
   const getActiveKey = () => {
     const path = location.pathname;

@@ -14,7 +14,8 @@ const login = asyncHandler(async (req, res) => {
 
   const user = await User.findByUsername(username);
   if (!user) throw new AppError("Invalid username or password", 401);
-  if (!user.isActive) throw new AppError("Account is blocked. Contact support.", 403);
+  if (!user.isActive)
+    throw new AppError("Account is blocked. Contact support.", 403);
 
   const valid = await user.comparePassword(password);
   if (!valid) throw new AppError("Invalid username or password", 401);
@@ -28,10 +29,11 @@ const login = asyncHandler(async (req, res) => {
   setAuthCookies(res, accessToken, user.role); // still set cookie for desktop
 
   return ok(res, 200, "Login successful", {
-    accessToken,          // ← ADD: frontend stores this for mobile/header auth
+    accessToken, // ← ADD: frontend stores this for mobile/header auth
     user: {
       _id: user._id,
       username: user.username,
+      firstName: user.firstName,
       role: user.role,
       coins: user.coins,
       isActive: user.isActive,
