@@ -100,7 +100,7 @@ const Navbar = () => {
       bg-(--color-primary)
       shadow-[0_2px_12px_rgba(0,0,0,0.28)]
       flex items-center justify-between
-      px-2 sm:px-5 border-b border-[rgba(214,228,245,0.15)]
+      px-2 sm:px-5 border-b border-red-500
     ">
       {/* User info */}
       <div className="
