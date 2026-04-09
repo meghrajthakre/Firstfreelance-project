@@ -9,5 +9,5 @@ export const logoutUser = () =>
 export const getMe = () =>
   API.get("/auth/me").then((r) => r.data);
 
-export const getBanner    = () => API.get("/banner");
+export const getBanner    = () => API.get("/banner").then((r) => r.data);
 export const updateBanner = (text) => API.put("/banner", { text }).then((r) => r.data);
