@@ -5,14 +5,19 @@ const POLL_MS = 30000;
 
 export default function MarqueeBanner() {
   const [text, setText] = useState("");
+  const [status, setStatus] = useState("loading"); // "loading" | "done" | "error"
   const timerRef = useRef(null);
 
   const fetchBanner = async () => {
     try {
-      const { data } = await getBanner();
-      if (data?.text) setText(data.text);
-    } catch {
-      // ignore error
+      const result = await getBanner();
+      if (result?.data?.text) {
+        setText(result.data.text);
+      }
+      setStatus("done");
+    } catch (err) {
+      console.error("Banner error:", err);
+      setStatus("error");
     }
   };
 
@@ -22,8 +27,11 @@ export default function MarqueeBanner() {
     return () => clearInterval(timerRef.current);
   }, []);
 
-  // Optional loader (better UX on mobile)
-  if (!text) {
+  // Hide banner completely on error or no text
+  if (status === "error" || (status === "done" && !text)) return null;
+
+  // Loading state
+  if (status === "loading") {
     return (
       <div className="h-8 flex items-center px-4 text-xs text-gray-400 bg-[var(--color-primary)]">
         Loading...
@@ -33,14 +41,8 @@ export default function MarqueeBanner() {
 
   return (
     <div className="w-full h-8 bg-[var(--color-primary)] border-b border-[rgba(214,228,245,0.15)] overflow-hidden flex items-center">
-      
-      {/* OUTER WRAPPER */}
       <div className="relative w-full overflow-hidden">
-        
-        {/* SCROLL TRACK */}
         <div className="flex animate-marquee">
-          
-          {/* Repeat more times for seamless loop */}
           {[...Array(6)].map((_, i) => (
             <span
               key={i}
@@ -61,7 +63,6 @@ export default function MarqueeBanner() {
               <span className="text-[var(--color-accent)]">★</span>
             </span>
           ))}
-
         </div>
       </div>
     </div>

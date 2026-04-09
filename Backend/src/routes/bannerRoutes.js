@@ -2,14 +2,13 @@
 const express = require("express");
 const router = express.Router();
 
-const { getBanner, upsertBanner } = require("../controllers/bannerController"); // adjust path
+const { getBanner, upsertBanner } = require("../controllers/bannerController");
 const { protect } = require("../middleware/authMiddleware");
 
+// Public read — no auth needed
+router.get("/", getBanner);
 
-// GET  /api/superadmin/banner  — any logged-in user can read the banner
-router.get("/", protect, getBanner);
-
-// PUT  /api/superadmin/banner  — only SuperAdmin can write
+// Protected write — only logged-in users
 router.put("/", protect, upsertBanner);
 
 module.exports = router;
