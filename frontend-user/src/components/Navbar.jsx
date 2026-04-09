@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCoinStore } from '../store/coinStore';
 import { logoutUser } from '../api/userService';
-import MarqueeBanner from './MarqueeBanner';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'HOME',       icon: 'ri-home-4-line',    path: '/dashboard' },
@@ -157,7 +156,6 @@ const Navbar = () => {
       </div>
 
       {/* Marquee banner sits at bottom of navbar */}
-      <MarqueeBanner />
     </div>
   );
 };
