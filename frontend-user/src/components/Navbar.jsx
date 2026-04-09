@@ -194,7 +194,7 @@ const Navbar = () => {
                     className="
                      text-xs sm:text-sm 
                 text-(--color-text-muted)
-                truncate max-w-[80px] sm:max-w-[130px]
+                 max-w-[80px] sm:max-w-[130px]
                  tracking-wide
 
                   "
