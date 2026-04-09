@@ -177,9 +177,10 @@ const Navbar = () => {
               <span
                 className="
                 
-                    text-[11px] sm:text-xs
-                    text-[rgba(214,228,245,0.6)]
-                    font-medium truncate max-w-[80px] sm:max-w-[120px]
+                    text-[14px] sm:text-semibold
+                    text-(--color-text-muted)
+                 max-w-[80px] sm:max-w-[130px]
+                 tracking-wide
               "
               >
                 {username}
@@ -192,7 +193,7 @@ const Navbar = () => {
                   </span>
                   <span
                     className="
-                     text-xs sm:text-sm 
+                     text-[17px] font-bold 
                 text-(--color-text-muted)
                  max-w-[80px] sm:max-w-[130px]
                  tracking-wide
