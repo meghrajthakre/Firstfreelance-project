@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import Icon from "../../components/common/Icon";
 
 const ALL_MATCHES = [
   { id: 1, matchId: "1.255585123", name: "New Zealand VS South Africa",   dateTime: "2026-03-22 11:45 am", declare: "Yes", won: "South Africa",   pl: -25098.8 },
@@ -51,12 +52,27 @@ function PLCell({ value }) {
 // Dropdown menu for Action button
 function ActionMenu({ onClose }) {
   return (
-    <div className="absolute left-0 top-9 z-20 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[160px] py-1"
+    <div className="absolute left-0 top-10  z-20 bg-white border border-gray-200 rounded-xl shadow-xl min-w-[220px] py-2"
       onClick={e => e.stopPropagation()}>
-      {["View Details", "Edit Match", "Declare Result", "Delete"].map(item => (
-        <button key={item} onClick={onClose}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-          {item}
+      <div className="px-3 py-1.5 border-b border-gray-100 mb-1">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Match Actions</span>
+      </div>
+      {[
+        { icon: "📊", label: "Match Live Report" },
+        { icon: "👥", label: "Live Report Admin Sharing" },
+        { icon: "📈", label: "Client Report / Profit Loss" },
+        { icon: "🏏", label: "Match & Session Plus Minus" },
+        { icon: "⏱️", label: "Session Plus Minus" },
+        { icon: "🎯", label: "Display Match Bets" },
+        { icon: "🔄", label: "Display Session Bets" }
+      ].map((item, idx) => (
+        <button
+          key={idx}
+          onClick={onClose}
+          className="w-full cursor-pointer text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200 flex items-center gap-2 group"
+        >
+          <span className="text-base opacity-60 group-hover:opacity-100 transition-opacity">{item.icon}</span>
+          <span>{item.label}</span>
         </button>
       ))}
     </div>
@@ -64,15 +80,30 @@ function ActionMenu({ onClose }) {
 }
 
 export default function MatchesPage() {
-  const [page, setPage]           = useState(1);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
   const [openAction, setOpenAction] = useState(null);
 
-  const totalPages = Math.ceil(ALL_MATCHES.length / PAGE_SIZE);
+  // Filter matches based on search
+  const filteredMatches = useMemo(() => {
+    if (!search) return ALL_MATCHES;
+    return ALL_MATCHES.filter(match => 
+      match.name.toLowerCase().includes(search.toLowerCase()) ||
+      match.matchId.includes(search)
+    );
+  }, [search]);
+
+  const totalPages = Math.ceil(filteredMatches.length / PAGE_SIZE);
 
   const rows = useMemo(() =>
-    ALL_MATCHES.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [page]
+    filteredMatches.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [page, filteredMatches]
   );
+
+  // Reset to page 1 when search changes
+  useState(() => {
+    setPage(1);
+  }, [search]);
 
   // Close dropdown on outside click
   const handleWrapperClick = () => setOpenAction(null);
@@ -93,94 +124,132 @@ export default function MatchesPage() {
         * { font-family: 'DM Sans', sans-serif; }`}
       </style>
 
-      <div className="min-h-screen bg-gray-100 p-3" onClick={handleWrapperClick}>
+      <div className="min-h-screen  " onClick={handleWrapperClick}>
         <div className="max-w-7xl mx-auto">
-
           <h1 className="text-2xl font-bold text-gray-800 mb-5">Matches</h1>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            {/* ── Toolbar ── */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-wrap gap-3">
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-sm text-gray-500">Search:</span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Match name or ID…"
+                  className="border border-gray-200 rounded px-3 py-1.5 text-sm text-gray-700
+                    focus:outline-none focus:ring-2 focus:ring-teal-400 w-64"
+                />
+              </div>
+            </div>
+
+            {/* ── Table ── */}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
+              <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600 w-28"></th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Match ID</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Name</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">Date/Time</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Declare</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Won</th>
-                    <th className="px-4 py-3 text-right font-semibold text-gray-600 whitespace-nowrap">Profit &amp; Loss</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border border-gray-200 w-28">Action</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border border-gray-200">Match ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border border-gray-200">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border border-gray-200 whitespace-nowrap">Date/Time</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border border-gray-200">Declare</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider border border-gray-200">Won</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider border border-gray-200 whitespace-nowrap">Profit &amp; Loss</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(match => (
-                    <tr key={match.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-
-                      {/* Action button */}
-                      <td className="px-4 py-3">
-                        <div className="relative" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => setOpenAction(openAction === match.id ? null : match.id)}
-                            className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold px-3 py-1.5 rounded transition-colors">
-                            Action
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="6 9 12 15 18 9"/>
-                            </svg>
-                          </button>
-                          {openAction === match.id && (
-                            <ActionMenu onClose={() => setOpenAction(null)} />
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3 text-gray-600 tabular-nums">{match.matchId}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{match.name}</td>
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{match.dateTime}</td>
-                      <td className="px-4 py-3 text-gray-700">{match.declare}</td>
-                      <td className="px-4 py-3 text-gray-700">{match.won}</td>
-                      <td className="px-4 py-3 text-right">
-                        <PLCell value={match.pl} />
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">
+                        No matches found.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    rows.map((match, idx) => (
+                      <tr key={match.id} className="hover:bg-gray-50 transition-colors">
+                        {/* Action button */}
+                        <td className="px-4 py-3 border border-gray-100">
+                          <div className="relative" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => setOpenAction(openAction === match.id ? null : match.id)}
+                              className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold px-3 py-1.5 rounded transition-colors">
+                              Action
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="6 9 12 15 18 9"/>
+                              </svg>
+                            </button>
+                            {openAction === match.id && (
+                              <ActionMenu onClose={() => setOpenAction(null)} />
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 border border-gray-100 text-gray-600 tabular-nums">{match.matchId}</td>
+                        <td className="px-4 py-3 border border-gray-100 font-medium text-gray-800">{match.name}</td>
+                        <td className="px-4 py-3 border border-gray-100 text-gray-600 whitespace-nowrap">{match.dateTime}</td>
+                        <td className="px-4 py-3 border border-gray-100">
+                          {match.declare === "Yes" ? (
+                            <span className="inline-flex items-center gap-1.5 bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded">
+                              <Icon d="M20 6L9 17l-5-5" size={11} /> Declared
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 bg-gray-400 text-white text-xs font-semibold px-3 py-1 rounded">
+                              No
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 border border-gray-100 text-gray-700">{match.won}</td>
+                        <td className="px-4 py-3 border border-gray-100 text-right">
+                          <PLCell value={match.pl} />
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
-              </table>
+               </table>
             </div>
 
-            {/* Pagination */}
-            <div className="flex items-center justify-center gap-1 px-5 py-4 border-t border-gray-100">
-              {/* Prev */}
-              <button disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                &lt;
-              </button>
-
-              {visiblePages.map(p => (
-                <button key={p} onClick={() => setPage(p)}
-                  className={`w-8 h-8 text-sm rounded font-medium transition-colors
-                    ${page === p
-                      ? "bg-teal-500 text-white"
-                      : "text-gray-600 hover:bg-gray-100"}`}>
-                  {p}
+            {/* ── Pagination ── */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 px-5 py-4 border-t border-gray-100">
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(p => p - 1)}
+                  className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  &lt;
                 </button>
-              ))}
-
-              {/* Next */}
-              <button disabled={page === totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                &gt;
-              </button>
-
-              {/* Last */}
-              <button onClick={() => setPage(totalPages)}
-                className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors font-medium">
-                Last
-              </button>
-            </div>
+                
+                {visiblePages.map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`w-8 h-8 text-sm rounded font-medium transition-colors
+                      ${page === p
+                        ? "bg-teal-500 text-white"
+                        : "text-gray-600 hover:bg-gray-100"}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(p => p + 1)}
+                  className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  &gt;
+                </button>
+                
+                <button
+                  onClick={() => setPage(totalPages)}
+                  className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors font-medium"
+                >
+                  Last
+                </button>
+              </div>
+            )}
           </div>
-
         </div>
       </div>
     </>
