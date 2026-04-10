@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Icon from "../../components/common/Icon";
 
 const ALL_MATCHES = [
@@ -50,9 +51,31 @@ function PLCell({ value }) {
 }
 
 // Dropdown menu for Action button
-function ActionMenu({ onClose }) {
+function ActionMenu({ onClose, matchId }) {
+  const navigate = useNavigate();
+
+  const handleAction = (action) => {
+    onClose();
+    const basePath = `/superadmin/matches/${matchId}`;
+    
+    const actionPaths = {
+      "Match Live Report": `${basePath}/live-report`,
+      "Live Report Admin Sharing": `${basePath}/admin-sharing`,
+      "Client Report / Profit Loss": `${basePath}/client-report`,
+      "Match & Session Plus Minus": `${basePath}/plus-minus`,
+      "Session Plus Minus": `${basePath}/session-plus-minus`,
+      "Display Match Bets": `${basePath}/match-bets`,
+      "Display Session Bets": `${basePath}/session-bets`
+    };
+    
+    const path = actionPaths[action];
+    if (path) {
+      navigate(path);
+    }
+  };
+
   return (
-    <div className="absolute left-0 top-10  z-20 bg-white border border-gray-200 rounded-xl shadow-xl min-w-[220px] py-2"
+    <div className="absolute left-0 top-10 z-20 bg-white border border-gray-200 rounded-xl shadow-xl min-w-[220px] py-2"
       onClick={e => e.stopPropagation()}>
       <div className="px-3 py-1.5 border-b border-gray-100 mb-1">
         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Match Actions</span>
@@ -68,10 +91,10 @@ function ActionMenu({ onClose }) {
       ].map((item, idx) => (
         <button
           key={idx}
-          onClick={onClose}
-          className="w-full cursor-pointer text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200 flex items-center gap-2 group"
+          onClick={() => handleAction(item.label)}
+          className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200 flex items-center gap-2 group"
         >
-          <span className="text-base opacity-60 group-hover:opacity-100 transition-opacity">{item.icon}</span>
+          <span className="text-base opacity-60 group-hover:opacity-100">{item.icon}</span>
           <span>{item.label}</span>
         </button>
       ))}
@@ -100,8 +123,8 @@ export default function MatchesPage() {
     [page, filteredMatches]
   );
 
-  // Reset to page 1 when search changes
-  useState(() => {
+  // Reset to page 1 when search changes - FIXED: Changed useState to useEffect
+  useEffect(() => {
     setPage(1);
   }, [search]);
 
@@ -124,7 +147,7 @@ export default function MatchesPage() {
         * { font-family: 'DM Sans', sans-serif; }`}
       </style>
 
-      <div className="min-h-screen  " onClick={handleWrapperClick}>
+      <div className="min-h-screen bg-gray-100 p-4 sm:p-6" onClick={handleWrapperClick}>
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-800 mb-5">Matches</h1>
 
@@ -162,24 +185,30 @@ export default function MatchesPage() {
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">
                         No matches found.
-                      </td>
+                       </td>
                     </tr>
                   ) : (
-                    rows.map((match, idx) => (
+                    rows.map((match) => (
                       <tr key={match.id} className="hover:bg-gray-50 transition-colors">
                         {/* Action button */}
                         <td className="px-4 py-3 border border-gray-100">
                           <div className="relative" onClick={e => e.stopPropagation()}>
                             <button
                               onClick={() => setOpenAction(openAction === match.id ? null : match.id)}
-                              className="flex items-center gap-1.5 bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold px-3 py-1.5 rounded transition-colors">
-                              Action
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              className="flex items-center gap-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="1"/>
+                                <circle cx="19" cy="12" r="1"/>
+                                <circle cx="5" cy="12" r="1"/>
+                              </svg>
+                              Actions
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform duration-200 ${openAction === match.id ? 'rotate-180' : ''}`}>
                                 <polyline points="6 9 12 15 18 9"/>
                               </svg>
                             </button>
                             {openAction === match.id && (
-                              <ActionMenu onClose={() => setOpenAction(null)} />
+                              <ActionMenu onClose={() => setOpenAction(null)} matchId={match.id} />
                             )}
                           </div>
                         </td>
@@ -206,7 +235,7 @@ export default function MatchesPage() {
                     ))
                   )}
                 </tbody>
-               </table>
+              </table>
             </div>
 
             {/* ── Pagination ── */}
