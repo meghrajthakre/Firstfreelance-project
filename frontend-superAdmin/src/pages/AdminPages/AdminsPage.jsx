@@ -9,6 +9,7 @@ import {
   getAdmins,
   createAdmin,
   toggleAdminStatus,
+  deleteAdmin, // Add this import
 } from "../../services/adminService";
 import { EMPTY_FORM, inputCls, readonlyCls } from "../../constants/adminConstants";
 
@@ -32,6 +33,7 @@ export default function AdminsPage() {
   // modals
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
+  const [confirmType, setConfirmType] = useState(null); // 'status' or 'delete'
   const [passOpen, setPassOpen] = useState(false);
   const [passAdminId, setPassAdminId] = useState(null);
 
@@ -142,21 +144,46 @@ export default function AdminsPage() {
     const admin = admins.find((a) => a._id === id);
     if (admin) {
       setSelectedAdmin(admin);
+      setConfirmType('status');
       setConfirmOpen(true);
     }
   };
 
-  const handleConfirmToggle = async (id) => {
-    try {
-      const res = await toggleAdminStatus(id);
-      showToast(res.message);
-      setAdmins((p) =>
-        p.map((a) => (a._id === id ? { ...a, isActive: res.data.isActive } : a))
-      );
-      setConfirmOpen(false);
-      setSelectedAdmin(null);
-    } catch (err) {
-      showToast(err?.response?.data?.message ?? err.message, true);
+  /* ── Delete admin with confirmation ── */
+  const handleDelete = (id) => {
+    const admin = admins.find((a) => a._id === id);
+    if (admin) {
+      setSelectedAdmin(admin);
+      setConfirmType('delete');
+      setConfirmOpen(true);
+    }
+  };
+
+  const handleConfirmAction = async (id) => {
+    if (confirmType === 'status') {
+      try {
+        const res = await toggleAdminStatus(id);
+        showToast(res.message);
+        setAdmins((p) =>
+          p.map((a) => (a._id === id ? { ...a, isActive: res.data.isActive } : a))
+        );
+        setConfirmOpen(false);
+        setSelectedAdmin(null);
+        setConfirmType(null);
+      } catch (err) {
+        showToast(err?.response?.data?.message ?? err.message, true);
+      }
+    } else if (confirmType === 'delete') {
+      try {
+        const res = await deleteAdmin(id);
+        showToast(res.message);
+        fetchAdmins(); // Refresh the list
+        setConfirmOpen(false);
+        setSelectedAdmin(null);
+        setConfirmType(null);
+      } catch (err) {
+        showToast(err?.response?.data?.message ?? err.message, true);
+      }
     }
   };
 
@@ -305,6 +332,14 @@ export default function AdminsPage() {
                               <Icon d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" size={11} />
                               Change Password
                             </button>
+                            <button
+                              onClick={() => handleDelete(a._id)}
+                              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700
+                                text-white text-xs font-semibold px-3 py-1.5 rounded transition-colors whitespace-nowrap"
+                            >
+                              <Icon d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" size={11} />
+                              Delete
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -350,7 +385,7 @@ export default function AdminsPage() {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════════
-          CREATE ADMIN MODAL (unchanged)
+          CREATE ADMIN MODAL
       ════════════════════════════════════════════════════════════════════ */}
       <Modal open={modalOpen} title="Create Admin" onClose={() => setModalOpen(false)}>
         <div className="grid grid-cols-2 gap-4">
@@ -499,12 +534,17 @@ export default function AdminsPage() {
         </div>
       </Modal>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal - Reused for both status toggle and delete */}
       <ConfirmationModal
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        onClose={() => {
+          setConfirmOpen(false);
+          setSelectedAdmin(null);
+          setConfirmType(null);
+        }}
         admin={selectedAdmin}
-        onConfirm={handleConfirmToggle}
+        actionType={confirmType}
+        onConfirm={handleConfirmAction}
       />
 
       {/* Change Password Modal */}

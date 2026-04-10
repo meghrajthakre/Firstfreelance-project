@@ -13,3 +13,9 @@ export const changeAdminPassword = (id, password, confirmPassword) =>
   api
     .patch(`/superadmin/admins/${id}/password`, { password, confirmPassword })
     .then((r) => r.data);
+
+export const updateAdmin = (id, updates) =>
+  api.put(`/superadmin/admins/${id}`, updates).then((r) => r.data);
+
+export const deleteAdmin = (id) =>
+  api.delete(`/superadmin/admins/${id}`).then((r) => r.data);

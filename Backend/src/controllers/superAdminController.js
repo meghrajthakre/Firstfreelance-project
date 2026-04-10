@@ -234,6 +234,47 @@ const changeAdminPassword = asyncHandler(async (req, res) => {
 
 
 
+/* ─────────────────────────────────────────────────────────────
+   DELETE ADMIN   DELETE /superadmin/admins/:id
+───────────────────────────────────────────────────────────── */
+const deleteAdmin = asyncHandler(async (req, res) => {
+  // First check if admin exists and belongs to this superadmin
+  const admin = await User.findOne({
+    _id: req.params.id,
+    role: ROLES.ADMIN,
+    createdBy: req.user._id,
+  });
+
+  if (!admin) {
+    throw new AppError("Admin not found or you don't have permission to delete this admin.", 404);
+  }
+
+  // Optional: Check if admin has any dependent records before deletion
+  // For example, check if this admin has created any sub-admins or other records
+  const hasDependents = await User.exists({ createdBy: admin._id });
+  if (hasDependents) {
+    throw new AppError(
+      "Cannot delete admin because they have created other users. Reassign or delete those users first.",
+      400
+    );
+  }
+
+  // Perform soft delete or hard delete based on your requirements
+  // Option 1: Hard delete (permanently remove from database)
+  await User.deleteOne({ _id: req.params.id });
+
+  res.status(200).json({
+    success: true,
+    message: `Admin ${admin.username} deleted successfully.`,
+    data: {
+      id: admin._id,
+      username: admin.username,
+      firstName: admin.firstName,
+    },
+  });
+});
+
+
 
 module.exports = {
   createAdmin,
@@ -242,4 +283,5 @@ module.exports = {
   updateAdmin,
   toggleAdminStatus,
   changeAdminPassword,
+  deleteAdmin
 };
