@@ -1,10 +1,10 @@
-  import LoadingSpinner from "./LoadingSpinner";
+import Spinner from "../../components/common/Spinner";
   import EmptyState from "./EmptyState";
   import UserRow from "./UserRow";
 
   export default function UsersTable({ users, loading, onToggle, onChangePassword, onDelete ,onEditCoins}) {
     if (loading) {
-      return <LoadingSpinner colSpan={6} />;
+      return <Spinner />;
     }
 
     if (users.length === 0) {
