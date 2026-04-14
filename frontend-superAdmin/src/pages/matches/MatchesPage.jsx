@@ -210,7 +210,7 @@ export default function MatchesPage() {
         * { font-family: 'DM Sans', sans-serif; }`}
       </style>
 
-      <div className="min-h-screen bg-gray-100 p-4 sm:p-6" onClick={handleWrapperClick}>
+      <div className="min-h-screen p-2" onClick={handleWrapperClick}>
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-800 mb-5">Matches</h1>
 
