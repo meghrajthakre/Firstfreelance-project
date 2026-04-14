@@ -1,7 +1,7 @@
 import { Route } from "react-router-dom";
 import MatchesPage from "../pages/matches/MatchesPage";
 import InPlayMatchesPage from "../pages/InPlayMatchesPage";
-import MatchLiveReport from "../pages/matches/MatchLiveReport/MatchLiveReport";
+import MatchLiveReport from "../pages/matches/MatchLiveReport";
 
 export default function MatchRoutes() {
   return (
