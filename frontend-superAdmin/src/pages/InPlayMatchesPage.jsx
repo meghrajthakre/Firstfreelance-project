@@ -48,7 +48,7 @@ export default function InPlayMatchesPage() {
         * { font-family: 'DM Sans', sans-serif; }`}
       </style>
 
-      <div className="min-h-screen bg-gray-100 p-6">
+      <div className="min-h-screen">
         <div className="max-w-7xl mx-auto">
 
           <h1 className="text-2xl font-bold text-gray-800 mb-5">In Play Matches</h1>
