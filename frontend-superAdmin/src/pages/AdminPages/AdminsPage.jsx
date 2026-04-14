@@ -218,9 +218,8 @@ export default function AdminsPage() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         * { font-family: 'DM Sans', sans-serif; }`}</style>
 
-      <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
+      <div className="min-h-screen">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-800 mb-5">Admins</h1>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
             {/* ── Toolbar ── */}

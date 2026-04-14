@@ -10,7 +10,7 @@ export default function UserRow({
   onEditCoins,
 }) {
   return (
-    <tr className="hover:bg-gray-50/80 transition-colors group">
+    <tr className="hover:bg-gray-200 transition-colors group">
       {/* SR. NO. */}
       <td className="px-6 py-4 text-gray-400 font-medium text-sm">
         {index + 1}

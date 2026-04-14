@@ -12,7 +12,7 @@
     }
 
     return (
-      <div className="overflow-x-auto p-6">
+      <div className="overflow-x-auto p-2">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-gray-500 text-xs uppercase tracking-wider">

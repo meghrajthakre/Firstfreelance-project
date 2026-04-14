@@ -84,9 +84,8 @@ export default function UsersList({ onGoCreate }) {
   );
 
   return (
-    <div className="p-6 font-sans">
+    <div className="p-1 font-sans bg-transparent">
       <PageHeader
-        title="Users"
         buttonText="+ Create User"
         onButtonClick={onGoCreate}
       />

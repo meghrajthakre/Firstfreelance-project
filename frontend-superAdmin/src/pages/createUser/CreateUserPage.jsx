@@ -6,7 +6,7 @@ export default function CreateUserPage() {
   const [view, setView] = useState("list");
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {view === "list" ? (
         <UsersList onGoCreate={() => setView("create")} />
       ) : (
