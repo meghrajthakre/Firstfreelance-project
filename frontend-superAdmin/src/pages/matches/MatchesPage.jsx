@@ -73,54 +73,64 @@ function ActionMenu({ onClose, matchId }) {
     {
       label: "Match Live Report",
       icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
         </svg>
       ),
+      color: "text-blue-600",
+      bgColor: "bg-blue-50"
     },
     {
       label: "Live Report Admin Sharing",
       icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
           <polyline points="16 6 12 2 8 6"/>
           <line x1="12" y1="2" x2="12" y2="15"/>
         </svg>
       ),
+      color: "text-purple-600",
+      bgColor: "bg-purple-50"
     },
     {
       label: "Client Report / Profit Loss",
       icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"/>
           <line x1="12" y1="20" x2="12" y2="4"/>
           <line x1="6" y1="20" x2="6" y2="14"/>
         </svg>
       ),
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50"
     },
     {
       label: "Match & Session Plus Minus",
       icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2"/>
           <line x1="12" y1="8" x2="12" y2="16"/>
           <line x1="8" y1="12" x2="16" y2="12"/>
         </svg>
       ),
+      color: "text-orange-600",
+      bgColor: "bg-orange-50"
     },
     {
       label: "Session Plus Minus",
       icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
       ),
+      color: "text-pink-600",
+      bgColor: "bg-pink-50"
     },
     {
       label: "Display Match Bets",
       icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
           <line x1="16" y1="13" x2="8" y2="13"/>
@@ -128,40 +138,134 @@ function ActionMenu({ onClose, matchId }) {
           <polyline points="10 9 9 9 8 9"/>
         </svg>
       ),
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50"
     },
     {
       label: "Display Session Bets",
       icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
       ),
+      color: "text-cyan-600",
+      bgColor: "bg-cyan-50"
     },
   ];
 
   return (
-    <div
-      className="absolute left-0 top-10 z-20 bg-white border border-gray-200 rounded-xl shadow-xl min-w-[220px] py-2"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="px-3 py-1.5 border-b border-gray-100 mb-1">
-        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          Match Actions
-        </span>
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 z-10"
+        onClick={onClose}
+      />
+      
+      {/* Menu */}
+      <div
+        className="absolute left-0 top-10 z-20 bg-white rounded-2xl shadow-2xl min-w-[260px] py-2 animate-in fade-in slide-in-from-top-2 duration-200"
+        style={{
+          boxShadow: '0 20px 35px -10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-gray-100 mb-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              Match Actions
+            </span>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors rounded-full p-0.5"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Menu Items */}
+        <div className="max-h-[400px] overflow-y-auto">
+          {menuItems.map((item, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleAction(item.label)}
+              className="w-full text-left px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200 flex items-center gap-3 group relative"
+            >
+              {/* Icon container with colored background on hover */}
+              <div className={`
+                w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200
+                ${item.bgColor} ${item.color} group-hover:scale-105
+              `}>
+                <span className="w-4 h-4">
+                  {item.icon}
+                </span>
+              </div>
+              
+              {/* Label */}
+              <span className="flex-1">{item.label}</span>
+              
+              {/* Arrow indicator on hover */}
+              <svg 
+                className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-200 transform group-hover:translate-x-1"
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          ))}
+        </div>
+
+        {/* Footer hint */}
+        <div className="px-4 py-2 border-t border-gray-100 mt-1">
+          <p className="text-xs text-gray-400 text-center">
+            Click to navigate
+          </p>
+        </div>
       </div>
-      {menuItems.map((item, idx) => (
-        <button
-          key={idx}
-          onClick={() => handleAction(item.label)}
-          className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-teal-50 hover:text-teal-600 transition-colors duration-150 flex items-center gap-2.5 group"
-        >
-          <span className="text-gray-400 group-hover:text-teal-500 transition-colors duration-150">
-            {item.icon}
-          </span>
-          <span>{item.label}</span>
-        </button>
-      ))}
-    </div>
+
+      {/* Animation styles - add to your global CSS */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slideInFromTop {
+          from {
+            opacity: 0;
+            transform: translateY(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-in {
+          animation-duration: 0.2s;
+          animation-fill-mode: both;
+        }
+        
+        .fade-in {
+          animation-name: fadeIn;
+        }
+        
+        .slide-in-from-top-2 {
+          animation-name: slideInFromTop;
+        }
+      `}</style>
+    </>
   );
 }
 
