@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Spinner from "../../components/common/Spinner";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -45,8 +45,8 @@ function BallDot({ cls, val }) {
 
 function transformSSEData(dataArray) {
   const result = {
-    runners: [],      // [{ name, lagai, khai, notPos, yesPos }]
-    sessions: [],     // [{ id, name, noRun, noRate, yesRun, yesRate, notPos, yesPos }]
+    runners: [],
+    sessions: [],
     tossMsg: "",
     lastBalls: [],
     newBatter: "",
@@ -58,7 +58,6 @@ function transformSSEData(dataArray) {
   if (!Array.isArray(dataArray)) return result;
 
   dataArray.forEach((item) => {
-    // ── Runner / match odds row ──
     if (item.toss_msg !== undefined) {
       result.tossMsg = item.toss_msg || "";
       result.suspendMsg = item.suspend_msg || "";
@@ -76,8 +75,6 @@ function transformSSEData(dataArray) {
       if (item.LocalScore) result.localScore = item.LocalScore;
       if (item.VisitorScore) result.visitorScore = item.VisitorScore;
     }
-
-    // Second runner row (no toss_msg but has Lagai/Khai and LocalScore)
     else if (item.name && item.Lagai !== undefined && item.AutoNo === undefined) {
       result.runners.push({
         name: item.name,
@@ -89,8 +86,6 @@ function transformSSEData(dataArray) {
       if (item.LocalScore) result.localScore = item.LocalScore;
       if (item.VisitorScore) result.visitorScore = item.VisitorScore;
     }
-
-    // ── Session row ──
     else if (item.AutoNo !== undefined) {
       result.sessions.push({
         id: item.AutoNo,
@@ -286,12 +281,15 @@ function MatchBetsTable({ bets }) {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function MatchLiveReport() {
-  const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showScorecard, setShowScorecard] = useState(false);
   const [showMatchBets, setShowMatchBets] = useState(false);
+  
+  // ─── MANUAL ID INPUT ───
+  const [matchId, setMatchId] = useState("1.256594918"); // Default ID, change this manually
+  const [inputId, setInputId] = useState("1.256594918");
 
   // SSE live states
   const [runners, setRunners] = useState([]);
@@ -307,24 +305,54 @@ export default function MatchLiveReport() {
   const eventSourceRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const keepAliveIntervalRef = useRef(null);
+
+  // Get server URL (works on both development and production)
+  const getServerUrl = () => {
+    // For production, use your actual server URL
+    // Change this to your server's URL
+    const PRODUCTION_URL = "https://your-server.com"; // ← CHANGE THIS
+    
+    if (process.env.NODE_ENV === "production") {
+      return PRODUCTION_URL;
+    }
+    // For development, use localhost or your local IP
+    return "http://localhost:5000";
+  };
 
   const initSSE = useCallback(() => {
-    if (!id) return;
+    if (!matchId) return;
+    
+    // Clean up existing connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
+    if (keepAliveIntervalRef.current) {
+      clearInterval(keepAliveIntervalRef.current);
+    }
 
-    const sseUrl = `http://localhost:5000/sse/${1.256594918}`;
+    const serverUrl = getServerUrl();
+    const sseUrl = `${serverUrl}/sse/${matchId}`;
+    
+    console.log("Connecting to SSE:", sseUrl);
 
     try {
       const es = new EventSource(sseUrl);
       eventSourceRef.current = es;
 
       es.onopen = () => {
+        console.log("SSE connection opened");
         setConnected(true);
         setError(null);
         reconnectAttemptsRef.current = 0;
+        
+        // Keep-alive for Safari mobile
+        keepAliveIntervalRef.current = setInterval(() => {
+          if (eventSourceRef.current?.readyState === EventSource.OPEN) {
+            console.debug("SSE keep-alive");
+          }
+        }, 15000);
       };
 
       es.onmessage = (event) => {
@@ -347,32 +375,58 @@ export default function MatchLiveReport() {
         }
       };
 
-      es.onerror = () => {
+      es.onerror = (error) => {
+        console.error("SSE error:", error);
         setConnected(false);
         es.close();
+        
+        // Clear keep-alive
+        if (keepAliveIntervalRef.current) {
+          clearInterval(keepAliveIntervalRef.current);
+        }
+        
+        // Exponential backoff reconnect
         const delay = Math.min(5000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
         reconnectAttemptsRef.current++;
+        console.log(`Reconnecting in ${delay}ms...`);
+        
         reconnectTimeoutRef.current = setTimeout(() => initSSE(), delay);
       };
     } catch (e) {
+      console.error("Failed to create EventSource:", e);
       setError("Failed to connect to live updates");
       setLoading(false);
     }
-  }, [id]);
+  }, [matchId]);
 
   const cleanupSSE = useCallback(() => {
-    eventSourceRef.current?.close();
-    eventSourceRef.current = null;
-    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    if (keepAliveIntervalRef.current) {
+      clearInterval(keepAliveIntervalRef.current);
+    }
   }, []);
 
-  useEffect(() => {
+  const handleConnect = () => {
+    setMatchId(inputId);
     setLoading(true);
+    setError(null);
+    setRunners([]);
+    setSessions([]);
+    cleanupSSE();
+    initSSE();
+  };
+
+  useEffect(() => {
     initSSE();
     return () => cleanupSSE();
-  }, [id, initSSE, cleanupSSE]);
+  }, [matchId, initSSE, cleanupSSE]);
 
-  // ── Toss message rendering ──
   const renderTossMsg = () => {
     if (!tossMsg) return "Connecting to live match...";
     const raw = stripHtml(tossMsg);
@@ -386,7 +440,6 @@ export default function MatchLiveReport() {
     );
   };
 
-  // ── Error state ──
   if (error) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -395,7 +448,7 @@ export default function MatchLiveReport() {
           <p className="text-gray-800 font-semibold mb-2">Connection Error</p>
           <p className="text-gray-600 text-sm mb-4">{error}</p>
           <button
-            onClick={() => { setError(null); setLoading(true); initSSE(); }}
+            onClick={handleConnect}
             className="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700 transition-colors"
           >
             Retry Connection
@@ -405,14 +458,13 @@ export default function MatchLiveReport() {
     );
   }
 
-  // ── Loading state ──
   if (loading && runners.length === 0) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <Spinner size={40} variant="rainbow" />
           <p className="mt-4 text-gray-600 text-sm">Connecting to live match data...</p>
-          <p className="text-gray-400 text-xs mt-2">Match ID: {id}</p>
+          <p className="text-gray-400 text-xs mt-2">Match ID: {matchId}</p>
         </div>
       </div>
     );
@@ -427,7 +479,7 @@ export default function MatchLiveReport() {
       <div className="min-h-screen bg-gray-100">
         <div className="max-w-4xl mx-auto px-2 py-4 md:px-4">
 
-          {/* ── Header bar ── */}
+          {/* ─── Header bar ─── */}
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
@@ -441,7 +493,7 @@ export default function MatchLiveReport() {
               </button>
               <div>
                 <h1 className="text-base font-bold text-gray-800">Match Live Report</h1>
-                <p className="text-xs text-gray-400">ID: {id}</p>
+                <p className="text-xs text-gray-400">ID: {matchId}</p>
               </div>
             </div>
 
@@ -455,7 +507,32 @@ export default function MatchLiveReport() {
             </div>
           </div>
 
-          {/* ── Toss / Target message ── */}
+          {/* ─── Manual ID Input Section ─── */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 p-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Match ID
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={inputId}
+                onChange={(e) => setInputId(e.target.value)}
+                placeholder="Enter Match ID"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
+              />
+              <button
+                onClick={handleConnect}
+                className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-colors text-sm font-semibold"
+              >
+                Connect
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Current ID: {matchId}
+            </p>
+          </div>
+
+          {/* ─── Toss / Target message ─── */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 overflow-hidden">
             <div className="px-5 py-4 text-center border-b border-gray-100">
               <p className="text-gray-800 font-bold text-sm md:text-base">
