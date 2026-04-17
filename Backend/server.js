@@ -92,6 +92,51 @@ app.get("/", (_req, res) =>
 app.use(cookieParser());
 app.use(globalLimiter);
 
+
+// 🔥 SSE Proxy Route
+app.get("/sse/:matchId", async (req, res) => {
+  const { matchId } = req.params;
+
+  try {
+    const targetUrl = `https://top11.info/Superadmin/get_data_event/${matchId}`;
+
+    const response = await fetch(targetUrl, {
+      headers: {
+        Accept: "text/event-stream",
+      },
+    });
+
+    if (!response.body) {
+      return res.status(500).send("No stream received");
+    }
+
+    // SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    // 🔥 Stream read loop
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      res.write(chunk);
+    }
+
+    res.end();
+  } catch (error) {
+    console.error("SSE Proxy Error:", error);
+    res.status(500).send("Error connecting to SSE source");
+  }
+});
+
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/superadmin", superAdminRoutes);
