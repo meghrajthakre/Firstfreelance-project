@@ -2,7 +2,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Spinner from "../../components/common/Spinner";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const PRODUCTION_URL = "https://your-server.com"; // ← CHANGE THIS
+const MAX_SSE_FAILURES = 3;          // Switch to polling after N consecutive SSE failures
+const FALLBACK_POLL_INTERVAL = 8000; // ms between fallback REST polls
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function PLValue({ value }) {
   if (value === null || value === undefined || value === "")
@@ -41,7 +47,7 @@ function BallDot({ cls, val }) {
   );
 }
 
-// ─── Data transformation ────────────────────────────────────────────────────
+// ─── Data transformation ──────────────────────────────────────────────────────
 
 function transformSSEData(dataArray) {
   const result = {
@@ -63,19 +69,6 @@ function transformSSEData(dataArray) {
       result.suspendMsg = item.suspend_msg || "";
       if (item.last_balls) result.lastBalls = parseBalls(item.last_balls);
       if (item.url) result.newBatter = item.url;
-
-      result.runners.push({
-        name: item.name,
-        lagai: item.Lagai || "",
-        khai: item.Khai || "",
-        notPos: null,
-        yesPos: null,
-      });
-
-      if (item.LocalScore) result.localScore = item.LocalScore;
-      if (item.VisitorScore) result.visitorScore = item.VisitorScore;
-    }
-    else if (item.name && item.Lagai !== undefined && item.AutoNo === undefined) {
       result.runners.push({
         name: item.name,
         lagai: item.Lagai || "",
@@ -85,8 +78,17 @@ function transformSSEData(dataArray) {
       });
       if (item.LocalScore) result.localScore = item.LocalScore;
       if (item.VisitorScore) result.visitorScore = item.VisitorScore;
-    }
-    else if (item.AutoNo !== undefined) {
+    } else if (item.name && item.Lagai !== undefined && item.AutoNo === undefined) {
+      result.runners.push({
+        name: item.name,
+        lagai: item.Lagai || "",
+        khai: item.Khai || "",
+        notPos: null,
+        yesPos: null,
+      });
+      if (item.LocalScore) result.localScore = item.LocalScore;
+      if (item.VisitorScore) result.visitorScore = item.VisitorScore;
+    } else if (item.AutoNo !== undefined) {
       result.sessions.push({
         id: item.AutoNo,
         name: item.name,
@@ -103,7 +105,7 @@ function transformSSEData(dataArray) {
   return result;
 }
 
-// ─── Runner Table ────────────────────────────────────────────────────────────
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function RunnerTable({ runners }) {
   return (
@@ -155,8 +157,6 @@ function RunnerTable({ runners }) {
   );
 }
 
-// ─── Session Table ───────────────────────────────────────────────────────────
-
 function SessionTable({ sessions }) {
   return (
     <table className="w-full border-collapse text-sm">
@@ -203,40 +203,6 @@ function SessionTable({ sessions }) {
   );
 }
 
-// ─── Declared Sessions ───────────────────────────────────────────────────────
-
-function DeclaredSessionTable({ sessions }) {
-  return (
-    <table className="w-full border-collapse text-sm">
-      <thead>
-        <tr>
-          <th className="bg-teal-500 text-white text-center text-xs font-semibold px-4 py-2.5 border border-teal-400 w-1/2">Session</th>
-          <th className="bg-teal-500 text-white text-center text-xs font-semibold px-4 py-2.5 border border-teal-400 w-1/4">Declared Run</th>
-          <th className="bg-teal-500 text-white text-center text-xs font-semibold px-4 py-2.5 border border-teal-400 w-1/4">Plus Minus</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sessions.map((s, i) => (
-          <tr key={i} className="hover:bg-gray-50 border-b border-gray-100">
-            <td className="px-4 py-3 text-center text-gray-700 border border-gray-200">{s.session}</td>
-            <td className="px-4 py-3 text-center text-gray-700 border border-gray-200">{s.declaredRun ?? ""}</td>
-            <td className="px-4 py-3 text-center border border-gray-200"><PLValue value={s.plusMinus} /></td>
-          </tr>
-        ))}
-        <tr className="bg-gray-50 font-semibold">
-          <td className="px-4 py-3 border border-gray-200" />
-          <td className="px-4 py-3 text-center text-gray-700 border border-gray-200">Total</td>
-          <td className="px-4 py-3 text-center border border-gray-200">
-            <PLValue value={sessions.reduce((acc, s) => acc + (s.plusMinus ?? 0), 0)} />
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  );
-}
-
-// ─── Match Bets Table ────────────────────────────────────────────────────────
-
 function MatchBetsTable({ bets }) {
   const cols = ["ID", "Client", "Rate", "Amount", "Mode", "Team", "Admin", "SST", "SS", "Agent", "My Share", "Team 1", "Team 2", "Date Time"];
   return (
@@ -278,20 +244,47 @@ function MatchBetsTable({ bets }) {
   );
 }
 
-// ─── Main Component ──────────────────────────────────────────────────────────
+// ─── Connection-mode badge ────────────────────────────────────────────────────
+
+function ConnectionBadge({ connected, usingFallback }) {
+  if (usingFallback) {
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
+        </span>
+        Polling (SSE unavailable)
+      </div>
+    );
+  }
+  return (
+    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${connected ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+      <span className="relative flex h-2 w-2">
+        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${connected ? "bg-green-400" : "bg-yellow-400"}`} />
+        <span className={`relative inline-flex rounded-full h-2 w-2 ${connected ? "bg-green-500" : "bg-yellow-500"}`} />
+      </span>
+      {connected ? "LIVE" : "Connecting…"}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function MatchLiveReport() {
   const navigate = useNavigate();
+
+  // UI state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showScorecard, setShowScorecard] = useState(false);
   const [showMatchBets, setShowMatchBets] = useState(false);
-  
-  // ─── MANUAL ID INPUT ───
-  const [matchId, setMatchId] = useState("1.256856948"); // Default ID, change this manually
-  const [inputId, setInputId] = useState("1.256856948");
 
-  // SSE live states
+  // Match ID
+  const [matchId, setMatchId] = useState("1.256594918");
+  const [inputId, setInputId] = useState("1.256594918");
+
+  // Live data state
   const [runners, setRunners] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [tossMsg, setTossMsg] = useState("");
@@ -300,135 +293,202 @@ export default function MatchLiveReport() {
   const [localScore, setLocalScore] = useState("");
   const [visitorScore, setVisitorScore] = useState("");
   const [suspendMsg, setSuspendMsg] = useState("");
-  const [connected, setConnected] = useState(false);
 
+  // Connection state
+  const [connected, setConnected] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  // Refs
   const eventSourceRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
-  const reconnectAttemptsRef = useRef(0);
   const keepAliveIntervalRef = useRef(null);
+  const fallbackIntervalRef = useRef(null);
+  const sseFailCountRef = useRef(0);
+  const reconnectAttemptsRef = useRef(0);
 
-  // Get server URL (works on both development and production)
-  const getServerUrl = () => {
-    // For production, use your actual server URL
-    // Change this to your server's URL
-    const PRODUCTION_URL = "https://your-server.com"; // ← CHANGE THIS
-    
-    if (process.env.NODE_ENV === "production") {
-      return PRODUCTION_URL;
-    }
-    // For development, use localhost or your local IP
-    return "http://localhost:5000";
-  };
+  // ── Server URL ──────────────────────────────────────────────────────────────
+  const getServerUrl = () =>
+    process.env.NODE_ENV === "production" ? PRODUCTION_URL : "http://localhost:5000";
 
-  const initSSE = useCallback(() => {
-    if (!matchId) return;
-    
-    // Clean up existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+  // ── Apply transformed data to state ────────────────────────────────────────
+  const applyData = useCallback((t) => {
+    if (t.runners.length > 0) setRunners(t.runners);
+    if (t.sessions.length > 0) setSessions(t.sessions);
+    if (t.tossMsg) setTossMsg(t.tossMsg);
+    if (t.lastBalls.length > 0) setLastBalls(t.lastBalls);
+    if (t.newBatter) setNewBatter(t.newBatter);
+    if (t.localScore) setLocalScore(t.localScore);
+    if (t.visitorScore) setVisitorScore(t.visitorScore);
+    if (t.suspendMsg !== undefined) setSuspendMsg(t.suspendMsg);
+    setLastUpdated(new Date());
+    setLoading(false);
+    setError(null);
+  }, []);
+
+  // ── Fallback: REST polling ──────────────────────────────────────────────────
+  const startFallbackPolling = useCallback(
+    (id) => {
+      // Clear any existing poll
+      if (fallbackIntervalRef.current) clearInterval(fallbackIntervalRef.current);
+
+      const poll = async () => {
+        try {
+          const res = await fetch(`${getServerUrl()}/sse/${id}/fallback`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
+            applyData(transformSSEData(json.data));
+          }
+        } catch (err) {
+          console.warn("[Fallback poll] Failed:", err.message);
+          // Don't set error here — keep polling silently
+        }
+      };
+
+      poll(); // immediate first hit
+      fallbackIntervalRef.current = setInterval(poll, FALLBACK_POLL_INTERVAL);
+      setUsingFallback(true);
+      setConnected(false);
+    },
+    [applyData]
+  );
+
+  // ── SSE connection ──────────────────────────────────────────────────────────
+  const initSSE = useCallback(
+    (id) => {
+      // Guard
+      if (!id) return;
+
+      // Tear down any previous connection
+      eventSourceRef.current?.close();
       eventSourceRef.current = null;
-    }
-    if (keepAliveIntervalRef.current) {
-      clearInterval(keepAliveIntervalRef.current);
-    }
+      if (keepAliveIntervalRef.current) clearInterval(keepAliveIntervalRef.current);
+      if (fallbackIntervalRef.current) clearInterval(fallbackIntervalRef.current);
 
-    const serverUrl = getServerUrl();
-    const sseUrl = `${serverUrl}/sse/${matchId}`;
-    
-    console.log("Connecting to SSE:", sseUrl);
+      const sseUrl = `${getServerUrl()}/sse/${id}`;
+      console.log("[SSE] Connecting:", sseUrl);
 
-    try {
-      const es = new EventSource(sseUrl);
+      let es;
+      try {
+        es = new EventSource(sseUrl);
+      } catch (e) {
+        console.error("[SSE] EventSource creation failed:", e);
+        startFallbackPolling(id);
+        return;
+      }
       eventSourceRef.current = es;
 
+      // ── onopen ──────────────────────────────────────────────────────────────
       es.onopen = () => {
-        console.log("SSE connection opened");
+        console.log("[SSE] Connected");
         setConnected(true);
+        setUsingFallback(false);
         setError(null);
+        sseFailCountRef.current = 0;
         reconnectAttemptsRef.current = 0;
-        
-        // Keep-alive for Safari mobile
+
+        // Keep-alive for mobile Safari
         keepAliveIntervalRef.current = setInterval(() => {
           if (eventSourceRef.current?.readyState === EventSource.OPEN) {
-            console.debug("SSE keep-alive");
+            // ping is silent — the server sends ":" heartbeat lines
           }
         }, 15000);
       };
 
+      // ── onmessage (default event) ────────────────────────────────────────────
       es.onmessage = (event) => {
         try {
           const raw = JSON.parse(event.data);
-          const t = transformSSEData(raw);
-
-          if (t.runners.length > 0) setRunners(t.runners);
-          if (t.sessions.length > 0) setSessions(t.sessions);
-          if (t.tossMsg) setTossMsg(t.tossMsg);
-          if (t.lastBalls.length > 0) setLastBalls(t.lastBalls);
-          if (t.newBatter) setNewBatter(t.newBatter);
-          if (t.localScore) setLocalScore(t.localScore);
-          if (t.visitorScore) setVisitorScore(t.visitorScore);
-          if (t.suspendMsg !== undefined) setSuspendMsg(t.suspendMsg);
-
-          setLoading(false);
+          applyData(transformSSEData(raw));
         } catch (e) {
-          console.error("SSE parse error:", e);
+          console.error("[SSE] Parse error:", e);
         }
       };
 
-      es.onerror = (error) => {
-        console.error("SSE error:", error);
+      // ── Named "retry" event from server ────────────────────────────────────
+      es.addEventListener("retry", (event) => {
+        try {
+          const { message } = JSON.parse(event.data);
+          console.warn("[SSE] Server retry notice:", message);
+        } catch {
+          // non-critical
+        }
+      });
+
+      // ── Named "error" event from server (all retries exhausted) ───────────
+      es.addEventListener("error", (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.fallback) {
+            console.warn("[SSE] Server signalled fallback mode");
+            es.close();
+            startFallbackPolling(id);
+          }
+        } catch {
+          // handled in onerror below
+        }
+      });
+
+      // ── onerror (network-level) ──────────────────────────────────────────────
+      es.onerror = () => {
+        console.error("[SSE] Connection error");
         setConnected(false);
         es.close();
-        
-        // Clear keep-alive
-        if (keepAliveIntervalRef.current) {
-          clearInterval(keepAliveIntervalRef.current);
-        }
-        
-        // Exponential backoff reconnect
-        const delay = Math.min(5000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-        reconnectAttemptsRef.current++;
-        console.log(`Reconnecting in ${delay}ms...`);
-        
-        reconnectTimeoutRef.current = setTimeout(() => initSSE(), delay);
-      };
-    } catch (e) {
-      console.error("Failed to create EventSource:", e);
-      setError("Failed to connect to live updates");
-      setLoading(false);
-    }
-  }, [matchId]);
+        if (keepAliveIntervalRef.current) clearInterval(keepAliveIntervalRef.current);
 
-  const cleanupSSE = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    if (keepAliveIntervalRef.current) {
-      clearInterval(keepAliveIntervalRef.current);
-    }
+        sseFailCountRef.current += 1;
+
+        if (sseFailCountRef.current >= MAX_SSE_FAILURES) {
+          console.warn(`[SSE] ${MAX_SSE_FAILURES} failures — switching to fallback polling`);
+          startFallbackPolling(id);
+          return;
+        }
+
+        // Exponential back-off reconnect
+        const delay = Math.min(5000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        reconnectAttemptsRef.current += 1;
+        console.log(`[SSE] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+        reconnectTimeoutRef.current = setTimeout(() => initSSE(id), delay);
+      };
+    },
+    [applyData, startFallbackPolling]
+  );
+
+  // ── Full cleanup ────────────────────────────────────────────────────────────
+  const cleanupAll = useCallback(() => {
+    eventSourceRef.current?.close();
+    eventSourceRef.current = null;
+    clearTimeout(reconnectTimeoutRef.current);
+    clearInterval(keepAliveIntervalRef.current);
+    clearInterval(fallbackIntervalRef.current);
   }, []);
 
-  const handleConnect = () => {
-    setMatchId(inputId);
+  // ── Connect / Reconnect triggered by matchId change ─────────────────────────
+  useEffect(() => {
+    sseFailCountRef.current = 0;
+    reconnectAttemptsRef.current = 0;
+    setUsingFallback(false);
+    setConnected(false);
     setLoading(true);
     setError(null);
+    initSSE(matchId);
+    return () => cleanupAll();
+  }, [matchId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Manual connect button ────────────────────────────────────────────────────
+  const handleConnect = () => {
+    const trimmed = inputId.trim();
+    if (!trimmed) return;
+    cleanupAll();
     setRunners([]);
     setSessions([]);
-    cleanupSSE();
-    initSSE();
+    setMatchId(trimmed);
   };
 
-  useEffect(() => {
-    initSSE();
-    return () => cleanupSSE();
-  }, [matchId, initSSE, cleanupSSE]);
-
+  // ── Toss message renderer ───────────────────────────────────────────────────
   const renderTossMsg = () => {
-    if (!tossMsg) return "Connecting to live match...";
+    if (!tossMsg) return "Connecting to live match…";
     const raw = stripHtml(tossMsg);
     const rrrIdx = raw.indexOf("RRR");
     if (rrrIdx === -1) return raw;
@@ -440,6 +500,7 @@ export default function MatchLiveReport() {
     );
   };
 
+  // ── Error screen ─────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -458,18 +519,20 @@ export default function MatchLiveReport() {
     );
   }
 
+  // ── Loading screen ────────────────────────────────────────────────────────────
   if (loading && runners.length === 0) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <Spinner size={40} variant="rainbow" />
-          <p className="mt-4 text-gray-600 text-sm">Connecting to live match data...</p>
+          <p className="mt-4 text-gray-600 text-sm">Connecting to live match data…</p>
           <p className="text-gray-400 text-xs mt-2">Match ID: {matchId}</p>
         </div>
       </div>
     );
   }
 
+  // ── Main render ───────────────────────────────────────────────────────────────
   return (
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -496,27 +559,46 @@ export default function MatchLiveReport() {
                 <p className="text-xs text-gray-400">ID: {matchId}</p>
               </div>
             </div>
-
-            {/* Live indicator */}
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${connected ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${connected ? "bg-green-400" : "bg-yellow-400"}`} />
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${connected ? "bg-green-500" : "bg-yellow-500"}`} />
-              </span>
-              {connected ? "LIVE" : "Connecting..."}
-            </div>
+            <ConnectionBadge connected={connected} usingFallback={usingFallback} />
           </div>
 
-          {/* ─── Manual ID Input Section ─── */}
+          {/* ─── Fallback notice banner ─── */}
+          {usingFallback && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 mb-3 flex items-start gap-3">
+              <span className="text-orange-500 text-lg mt-0.5">⚡</span>
+              <div>
+                <p className="text-orange-700 text-xs font-semibold">Live stream unavailable</p>
+                <p className="text-orange-600 text-xs mt-0.5">
+                  Switched to polling mode — data refreshes every {FALLBACK_POLL_INTERVAL / 1000}s.
+                  {lastUpdated && (
+                    <> Last update: {lastUpdated.toLocaleTimeString()}</>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  sseFailCountRef.current = 0;
+                  cleanupAll();
+                  setUsingFallback(false);
+                  setLoading(true);
+                  initSSE(matchId);
+                }}
+                className="ml-auto text-xs text-orange-700 underline whitespace-nowrap"
+              >
+                Retry SSE
+              </button>
+            </div>
+          )}
+
+          {/* ─── Manual ID Input ─── */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 p-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Match ID
-            </label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Match ID</label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={inputId}
                 onChange={(e) => setInputId(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleConnect()}
                 placeholder="Enter Match ID"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
               />
@@ -527,17 +609,13 @@ export default function MatchLiveReport() {
                 Connect
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">
-              Current ID: {matchId}
-            </p>
+            <p className="text-xs text-gray-400 mt-2">Current ID: {matchId}</p>
           </div>
 
           {/* ─── Toss / Target message ─── */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 overflow-hidden">
             <div className="px-5 py-4 text-center border-b border-gray-100">
-              <p className="text-gray-800 font-bold text-sm md:text-base">
-                {renderTossMsg()}
-              </p>
+              <p className="text-gray-800 font-bold text-sm md:text-base">{renderTossMsg()}</p>
               {newBatter && (
                 <p className="text-yellow-600 text-xs mt-1 font-medium animate-pulse">{newBatter}</p>
               )}
@@ -546,7 +624,7 @@ export default function MatchLiveReport() {
               )}
             </div>
 
-            {/* Show Full Scorecard button */}
+            {/* Scorecard toggle */}
             <div className="px-5 py-2 flex justify-center border-b border-gray-100 bg-gray-50">
               <button
                 onClick={() => setShowScorecard(!showScorecard)}
@@ -556,7 +634,6 @@ export default function MatchLiveReport() {
               </button>
             </div>
 
-            {/* ── CR Over + Score bar ── */}
             <div className="bg-teal-600 text-white text-center text-xs font-bold py-1.5 tracking-widest">
               CR Over — 0
             </div>
@@ -594,11 +671,16 @@ export default function MatchLiveReport() {
             <SessionTable sessions={sessions} />
           </div>
 
-          {/* ── No data fallback ── */}
+          {/* ── No data yet ── */}
           {runners.length === 0 && sessions.length === 0 && !loading && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-3 p-8 text-center">
-              <p className="text-gray-400 text-sm">Waiting for live data...</p>
+              <p className="text-gray-400 text-sm">Waiting for live data…</p>
               <p className="text-gray-300 text-xs mt-1">Data will appear once available from the source</p>
+              {usingFallback && (
+                <p className="text-orange-400 text-xs mt-2">
+                  Polling every {FALLBACK_POLL_INTERVAL / 1000}s via fallback endpoint
+                </p>
+              )}
             </div>
           )}
 
@@ -612,7 +694,6 @@ export default function MatchLiveReport() {
             </button>
           </div>
 
-          {/* ── Match Bets table ── */}
           {showMatchBets && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 overflow-hidden">
               <div className="px-5 py-3 border-b border-gray-200">
@@ -635,7 +716,8 @@ export default function MatchLiveReport() {
               <h3 className="text-base font-bold text-gray-800">Live Scorecard</h3>
               <button onClick={() => setShowScorecard(false)} className="text-gray-400 hover:text-gray-600">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
@@ -645,7 +727,16 @@ export default function MatchLiveReport() {
                 <p className="font-semibold">Visitor: {visitorScore || "—"}</p>
                 {tossMsg && <p className="text-xs text-gray-500 mt-2">{stripHtml(tossMsg)}</p>}
               </div>
-              <p className="text-xs text-gray-400 text-center">Live updates streaming in real-time</p>
+              <p className="text-xs text-gray-400 text-center">
+                {usingFallback
+                  ? `Polling mode — refreshes every ${FALLBACK_POLL_INTERVAL / 1000}s`
+                  : "Live updates streaming in real-time"}
+              </p>
+              {lastUpdated && (
+                <p className="text-xs text-gray-400 text-center">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </p>
+              )}
             </div>
           </div>
         </div>
