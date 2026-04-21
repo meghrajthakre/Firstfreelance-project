@@ -59,59 +59,178 @@ function PLCell({ value }) {
   );
 }
 
+const MENU_SECTIONS = [
+  {
+    label: "Reports",
+    items: [
+      {
+        label: "Match Live Report",
+        desc: "Real-time scoring",
+        color: "text-blue-600",
+        bg: "bg-blue-50",
+        path: "live-report",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <rect x="3" y="3" width="14" height="14" rx="2" />
+            <path d="M7 13V10M10 13V7M13 13V10" />
+          </svg>
+        ),
+      },
+      {
+        label: "Live Report Admin Sharing",
+        desc: "Broadcast to admins",
+        color: "text-purple-600",
+        bg: "bg-purple-50",
+        path: "admin-sharing",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <circle cx="14" cy="4" r="1.8" />
+            <circle cx="14" cy="16" r="1.8" />
+            <circle cx="4"  cy="10" r="1.8" />
+            <path d="M5.8 9.1 12.2 5.3M5.8 10.9l6.4 3.8" />
+          </svg>
+        ),
+      },
+      {
+        label: "Client Report / Profit Loss",
+        desc: "P&L breakdown",
+        color: "text-emerald-600",
+        bg: "bg-emerald-50",
+        path: "client-report",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <path d="M10 2v2M10 16v2M4.93 4.93l1.41 1.41M13.66 13.66l1.41 1.41M2 10h2M16 10h2M4.93 15.07l1.41-1.41M13.66 6.34l1.41-1.41" />
+            <circle cx="10" cy="10" r="3.5" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    label: "Plus Minus",
+    items: [
+      {
+        label: "Match & Session Plus Minus",
+        desc: "Combined summary",
+        color: "text-orange-600",
+        bg: "bg-orange-50",
+        path: "plus-minus",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <path d="M10 4v12M4 10h12" />
+            <rect x="2.5" y="2.5" width="6" height="6" rx="1.2" />
+            <rect x="11.5" y="11.5" width="6" height="6" rx="1.2" />
+          </svg>
+        ),
+      },
+      {
+        label: "Session Plus Minus",
+        desc: "Per-session view",
+        color: "text-pink-600",
+        bg: "bg-pink-50",
+        path: "session-plus-minus",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <circle cx="10" cy="10" r="7.5" />
+            <path d="M10 5.5V10l3 2" />
+            <path d="M7.5 13.5h5" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    label: "Bets",
+    items: [
+      {
+        label: "Display Match Bets",
+        desc: "All match wagers",
+        color: "text-indigo-600",
+        bg: "bg-indigo-50",
+        path: "match-bets",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <rect x="2.5" y="2.5" width="15" height="15" rx="3" />
+            <circle cx="6.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+            <circle cx="10"  cy="6.5" r="1" fill="currentColor" stroke="none" />
+            <circle cx="13.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+            <circle cx="6.5" cy="10"  r="1" fill="currentColor" stroke="none" />
+            <circle cx="13.5" cy="10"  r="1" fill="currentColor" stroke="none" />
+            <circle cx="6.5" cy="13.5" r="1" fill="currentColor" stroke="none" />
+            <circle cx="10"  cy="13.5" r="1" fill="currentColor" stroke="none" />
+            <circle cx="13.5" cy="13.5" r="1" fill="currentColor" stroke="none" />
+          </svg>
+        ),
+      },
+      {
+        label: "Display Session Bets",
+        desc: "Session wagers only",
+        color: "text-cyan-600",
+        bg: "bg-cyan-50",
+        path: "session-bets",
+        icon: (
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <path d="M4 5h12M4 8h8M4 11h10M4 14h6" />
+            <rect x="2" y="2" width="16" height="16" rx="2.5" />
+          </svg>
+        ),
+      },
+    ],
+  },
+];
+
 function ActionMenu({ onClose, matchId }) {
   const navigate = useNavigate();
 
-  const handleAction = (action) => {
+  const go = (path) => {
     onClose();
-    const basePath = `/superadmin/matches/${matchId}`;
-    const actionPaths = {
-      "Match Live Report": `${basePath}/live-report`,
-      "Live Report Admin Sharing": `${basePath}/admin-sharing`,
-      "Client Report / Profit Loss": `${basePath}/client-report`,
-      "Match & Session Plus Minus": `${basePath}/plus-minus`,
-      "Session Plus Minus": `${basePath}/session-plus-minus`,
-      "Display Match Bets": `${basePath}/match-bets`,
-      "Display Session Bets": `${basePath}/session-bets`,
-    };
-    const path = actionPaths[action];
-    if (path) navigate(path);
+    navigate(`/superadmin/matches/${matchId}/${path}`);
   };
-
-  const menuItems = [
-    { label: "Match Live Report", icon: "📊", color: "text-blue-600", bgColor: "bg-blue-50" },
-    { label: "Live Report Admin Sharing", icon: "📤", color: "text-purple-600", bgColor: "bg-purple-50" },
-    { label: "Client Report / Profit Loss", icon: "💰", color: "text-emerald-600", bgColor: "bg-emerald-50" },
-    { label: "Match & Session Plus Minus", icon: "➕", color: "text-orange-600", bgColor: "bg-orange-50" },
-    { label: "Session Plus Minus", icon: "⏱️", color: "text-pink-600", bgColor: "bg-pink-50" },
-    { label: "Display Match Bets", icon: "🎲", color: "text-indigo-600", bgColor: "bg-indigo-50" },
-    { label: "Display Session Bets", icon: "📋", color: "text-cyan-600", bgColor: "bg-cyan-50" },
-  ];
 
   return (
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
       <div
-        className="absolute left-0 top-full mt-2 z-20 bg-white rounded-lg shadow-xl min-w-[260px] py-1 border border-gray-100"
+        className="absolute left-0 top-full mt-1.5 z-20 bg-white rounded-xl shadow-xl border border-gray-100 w-72 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-3 py-2 border-b border-gray-100">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+        {/* Header */}
+        <div className="px-3.5 py-2.5 border-b border-gray-100 bg-gray-50">
+          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
             Match Actions
           </span>
         </div>
-        <div className="max-h-[380px] overflow-y-auto py-1">
-          {menuItems.map((item, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleAction(item.label)}
-              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2.5 group"
-            >
-              <div className={`w-7 h-7 rounded-md flex items-center justify-center ${item.bgColor} ${item.color}`}>
-                <span className="text-sm">{item.icon}</span>
-              </div>
-              <span className="flex-1">{item.label}</span>
-            </button>
+
+        {/* Sections */}
+        <div className="max-h-[420px] overflow-y-auto py-1.5 px-1.5 space-y-0.5">
+          {MENU_SECTIONS.map((section, si) => (
+            <div key={si}>
+              <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                {section.label}
+              </p>
+              {section.items.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => go(item.path)}
+                  className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors group"
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${item.bg} ${item.color} border border-black/5`}>
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-gray-800 leading-tight">{item.label}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{item.desc}</p>
+                  </div>
+                  <ChevronRight
+                    size={13}
+                    className="text-gray-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all flex-shrink-0"
+                  />
+                </button>
+              ))}
+              {si < MENU_SECTIONS.length - 1 && (
+                <div className="mt-1.5 border-t border-gray-100 mx-1" />
+              )}
+            </div>
           ))}
         </div>
       </div>
