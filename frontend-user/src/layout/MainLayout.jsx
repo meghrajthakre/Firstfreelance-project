@@ -15,7 +15,7 @@ const MainLayout = () => {
       </header>
 
       {/* pt-24 = h-16 navbar + h-8 banner */}
-      <main className="pt-5">
+      <main className="">
         <Outlet />
       </main>
 
