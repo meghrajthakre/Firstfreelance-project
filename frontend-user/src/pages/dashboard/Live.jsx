@@ -11,10 +11,71 @@ import {
 } from "react-icons/md";
 import { IoTrophyOutline } from "react-icons/io5";
 
-const CRICAPI_KEY = "6b0595be-1018-42d5-a9d2-d76a3fdf6d9d";
-const CRICAPI_URL = `https://api.cricapi.com/v1/currentMatches?apikey=${CRICAPI_KEY}&offset=0`;
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const ODDS_API_KEY = "8297e0b75b4fd8aefb660adb39809c17";
+const ODDS_URL = `https://api.the-odds-api.com/v4/sports/cricket/odds/?apiKey=${ODDS_API_KEY}&regions=uk&markets=h2h`;
 
+// ─── IPL Team colors ───────────────────────────────────────────────────────
+const IPL_TEAMS = {
+  "Mumbai Indians": {
+    short: "MI",
+    primary: "#004BA0",
+    secondary: "#D1AB3E"
+  },
+  "Chennai Super Kings": {
+    short: "CSK",
+    primary: "#F9CD05",
+    secondary: "#1D1D1B"
+  },
+  "Royal Challengers Bengaluru": {
+    short: "RCB",
+    primary: "#D11D1B",
+    secondary: "#000000"
+  },
+  "Kolkata Knight Riders": {
+    short: "KKR",
+    primary: "#3A225D",
+    secondary: "#C4A962"
+  },
+  "Sunrisers Hyderabad": {
+    short: "SRH",
+    primary: "#F7A721",
+    secondary: "#000000"
+  },
+  "Delhi Capitals": {
+    short: "DC",
+    primary: "#0078BC",
+    secondary: "#EF1B23"
+  },
+  "Punjab Kings": {
+    short: "PBKS",
+    primary: "#ED1F27",
+    secondary: "#A7A9AC"
+  },
+  "Rajasthan Royals": {
+    short: "RR",
+    primary: "#EA1A85",
+    secondary: "#254AA5"
+  },
+  "Gujarat Titans": {
+    short: "GT",
+    primary: "#1C1C1C",
+    secondary: "#C5A253"
+  },
+  "Lucknow Super Giants": {
+    short: "LSG",
+    primary: "#00AEEF",
+    secondary: "#F7A721"
+  }
+};
+
+function getTeamMeta(name) {
+  return IPL_TEAMS[name] || { short: name?.slice(0, 3).toUpperCase() || "—", primary: "#0d9488", secondary: "#ffffff" };
+}
+
+// ─── Sports tabs ───────────────────────────────────────────────────────────
 const SPORTS = [
+  { id: "ipl",        label: "IPL",        Icon: MdSportsCricket },
   { id: "cricket",    label: "Cricket",    Icon: MdSportsCricket },
   { id: "football",   label: "Football",   Icon: MdSportsFootball },
   { id: "tennis",     label: "Tennis",     Icon: MdSportsTennis },
@@ -23,14 +84,15 @@ const SPORTS = [
   { id: "tournament", label: "Tournament", Icon: MdEmojiEvents },
 ];
 
+// ─── Helpers ───────────────────────────────────────────────────────────────
 function isToday(dateStr) {
   if (!dateStr) return false;
-  const matchDate = new Date(dateStr);
-  const today     = new Date();
+  const d     = new Date(dateStr);
+  const today = new Date();
   return (
-    matchDate.getFullYear() === today.getFullYear() &&
-    matchDate.getMonth()    === today.getMonth()    &&
-    matchDate.getDate()     === today.getDate()
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth()    === today.getMonth()    &&
+    d.getDate()     === today.getDate()
   );
 }
 
@@ -53,20 +115,184 @@ function getMatchStatus(m) {
 function getScore(m) {
   if (!m.score?.length) return null;
   return m.score
-    .map(s => `${s.inning.replace(" Inning 1", "").replace(" Inning 2", "")} ${s.r}/${s.w} (${s.o})`)
+    .map(s => `${s.inning.replace(" Inning 1","").replace(" Inning 2","")} ${s.r}/${s.w} (${s.o})`)
     .join("  |  ");
 }
 
+function isIPL(m) {
+  return (m.series_name || m.name || "").toLowerCase().includes("indian premier league");
+}
+
 function detectSport(m) {
-  const name = (m.series_name || m.name || "").toLowerCase();
-  if (name.includes("ipl") || name.includes("cricket") || ["t20", "odi", "test", "t10"].includes(m.matchType)) return "cricket";
-  if (name.includes("football") || name.includes("soccer")) return "football";
-  if (name.includes("tennis"))   return "tennis";
-  if (name.includes("kabaddi"))  return "kabaddi";
-  if (name.includes("election")) return "elections";
+  const sport = m.sport_key?.toLowerCase() || "";
+  if (sport.includes("ipl")) return "ipl";
+  if (sport.includes("psl")) return "cricket";
+  if (sport.includes("odi") || sport.includes("t20") || sport.includes("test")) return "cricket";
+  if (sport.includes("football")) return "football";
+  if (sport.includes("tennis")) return "tennis";
+  if (sport.includes("kabaddi")) return "kabaddi";
   return "cricket";
 }
 
+// ─── TeamBadge ─────────────────────────────────────────────────────────────
+const TeamBadge = ({ name }) => {
+  const { short, primary, secondary } = getTeamMeta(name);
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flex: 1,
+    }}>
+      <div style={{
+        width: "44px", height: "44px", borderRadius: "50%",
+        backgroundColor: primary + "18",
+        border: `2px solid ${primary}60`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "var(--font-rajdhani)", fontWeight: "700",
+        fontSize: "11px", color: primary, letterSpacing: "0.5px",
+      }}>
+        {short}
+      </div>
+      <span style={{
+        fontSize: "11px", fontWeight: "600", color: "var(--color-text-dark)",
+        fontFamily: "var(--font-nunito)", textAlign: "center",
+        maxWidth: "80px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+      }}>
+        {name}
+      </span>
+    </div>
+  );
+};
+
+// ─── IPLMatchCard ──────────────────────────────────────────────────────────
+const IPLMatchCard = ({ match }) => {
+  const [hovered, setHovered] = useState(false);
+  const teamA  = match.teams?.[0] || match.raw?.home_team || "TBA";
+  const teamB  = match.teams?.[1] || match.raw?.away_team || "TBA";
+  const isLive = match.status === "live";
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "relative",
+        backgroundColor: "var(--color-input-bg)",
+        borderRadius: "16px",
+        border: `1.5px solid ${isLive ? "#ef444440" : hovered ? "var(--color-primary)" : "var(--color-border)"}`,
+        overflow: "hidden", cursor: "pointer",
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
+        transition: "border-color 0.18s, transform 0.18s",
+      }}
+    >
+      {/* Live glow bar */}
+      {isLive && (
+        <div style={{
+          position: "absolute", top: 0, left: 0, height: "3px", width: "100%",
+          background: "linear-gradient(90deg, #ef4444, #f97316, #ef4444)",
+          backgroundSize: "200% 100%",
+          animation: "shimmer 2s linear infinite",
+        }} />
+      )}
+      {/* Hover accent bar */}
+      {!isLive && (
+        <div style={{
+          position: "absolute", top: 0, left: 0, height: "3px", width: "100%",
+          backgroundColor: "var(--color-primary)",
+          transformOrigin: "left",
+          transform: hovered ? "scaleX(1)" : "scaleX(0)",
+          transition: "transform 0.25s ease",
+        }} />
+      )}
+
+      <div style={{ padding: "14px 16px" }}>
+        {/* Header: subtitle + badges */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+          <span style={{
+            fontSize: "11px", fontWeight: "600", opacity: 0.45,
+            color: "var(--color-text-dark)", fontFamily: "var(--font-nunito)",
+          }}>
+            {match.subtitle}
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <StatusBadge status={match.status} />
+            <div style={{
+              display: "flex", alignItems: "center", gap: "4px",
+              padding: "3px 8px", borderRadius: "20px",
+              backgroundColor: "var(--color-bg-main)",
+              border: "1px solid var(--color-border)",
+            }}>
+              <MdAccessTime size={12} style={{ color: "var(--color-primary)", opacity: 0.8 }} />
+              <span style={{
+                fontFamily: "var(--font-rajdhani)", fontWeight: "700",
+                fontSize: "11px", color: "var(--color-primary)", letterSpacing: "0.4px",
+              }}>
+                {match.time}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Teams row */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+          <TeamBadge name={teamA} />
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", flexShrink: 0,
+          }}>
+            <span style={{
+              fontFamily: "var(--font-rajdhani)", fontWeight: "700",
+              fontSize: "13px", color: "var(--color-text-dark)", opacity: 0.3,
+            }}>VS</span>
+          </div>
+          <TeamBadge name={teamB} />
+        </div>
+
+        {/* Live score */}
+        {match.score && (
+          <div style={{
+            padding: "8px 10px", borderRadius: "8px",
+            backgroundColor: "var(--color-bg-main)",
+            border: "1px solid var(--color-border)",
+            fontSize: "11px", fontFamily: "var(--font-rajdhani)", fontWeight: "600",
+            color: "var(--color-primary)", letterSpacing: "0.3px",
+            marginBottom: "10px",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            🏏 {match.score}
+          </div>
+        )}
+
+        {/* Match status text */}
+        {match.raw?.status && match.raw.status !== "Match not started" && (
+          <div style={{
+            fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.5,
+            fontFamily: "var(--font-nunito)", marginBottom: "10px",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            {match.raw.status}
+          </div>
+        )}
+
+        {/* Venue */}
+        {match.venue && (
+          <div style={{
+            fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.35,
+            fontFamily: "var(--font-nunito)", marginBottom: "10px",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>
+            📍 {match.venue}
+          </div>
+        )}
+
+        {/* Bet pills */}
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <BetPill label="Match Bets"   value={match.matchBets} />
+          <BetPill label="Session Bets" value={match.sessionBets} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── BetPill ───────────────────────────────────────────────────────────────
 const BetPill = ({ label, value }) => (
   <div style={{
     display: "inline-flex", alignItems: "center", gap: "5px",
@@ -83,6 +309,7 @@ const BetPill = ({ label, value }) => (
   </div>
 );
 
+// ─── StatusBadge ───────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const config = {
     live:      { label: "● LIVE",    color: "#ef4444", bg: "#fef2f2" },
@@ -102,18 +329,17 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// ─── MatchCard (non-IPL) ───────────────────────────────────────────────────
 const MatchCard = ({ match, activeSport }) => {
   const [hovered, setHovered] = useState(false);
   const ActiveIcon = activeSport?.Icon;
-  const score = getScore(match);
 
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        position: "relative",
-        backgroundColor: "var(--color-input-bg)",
+        position: "relative", backgroundColor: "var(--color-input-bg)",
         borderRadius: "14px",
         border: `1.5px solid ${hovered ? "var(--color-primary)" : "var(--color-border)"}`,
         overflow: "hidden", cursor: "pointer",
@@ -121,98 +347,48 @@ const MatchCard = ({ match, activeSport }) => {
         transition: "border-color 0.18s, transform 0.18s",
       }}
     >
-      {/* Top accent bar */}
       <div style={{
-        position: "absolute", top: 0, left: 0,
-        height: "3px", width: "100%",
-        backgroundColor: "var(--color-primary)",
-        transformOrigin: "left",
-        transform: hovered ? "scaleX(1)" : "scaleX(0)",
-        transition: "transform 0.25s ease",
+        position: "absolute", top: 0, left: 0, height: "3px", width: "100%",
+        backgroundColor: "var(--color-primary)", transformOrigin: "left",
+        transform: hovered ? "scaleX(1)" : "scaleX(0)", transition: "transform 0.25s ease",
       }} />
-
       <div style={{ padding: "14px 16px" }}>
-        {/* Row 1: icon + subtitle + time + status */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", gap: "8px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
             <div style={{
-              width: "34px", height: "34px", minWidth: "34px",
-              borderRadius: "9px", backgroundColor: "var(--color-primary)",
+              width: "34px", height: "34px", minWidth: "34px", borderRadius: "9px",
+              backgroundColor: "var(--color-primary)",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
               {ActiveIcon && <ActiveIcon size={18} style={{ color: "var(--color-text-muted)" }} />}
             </div>
-            <span style={{
-              fontSize: "12px", fontWeight: "600", opacity: 0.45,
-              color: "var(--color-text-dark)", fontFamily: "var(--font-nunito)",
-              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-            }}>
+            <span style={{ fontSize: "12px", fontWeight: "600", opacity: 0.45, color: "var(--color-text-dark)", fontFamily: "var(--font-nunito)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {match.subtitle}
             </span>
           </div>
-
           <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
             <StatusBadge status={match.status} />
-            <div style={{
-              display: "flex", alignItems: "center", gap: "4px",
-              padding: "3px 8px", borderRadius: "20px",
-              backgroundColor: "var(--color-bg-main)",
-              border: "1px solid var(--color-border)",
-            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", borderRadius: "20px", backgroundColor: "var(--color-bg-main)", border: "1px solid var(--color-border)" }}>
               <MdAccessTime size={12} style={{ color: "var(--color-primary)", opacity: 0.8 }} />
-              <span style={{
-                fontFamily: "var(--font-rajdhani)", fontWeight: "700",
-                fontSize: "11px", color: "var(--color-primary)",
-                letterSpacing: "0.4px", whiteSpace: "nowrap",
-              }}>
+              <span style={{ fontFamily: "var(--font-rajdhani)", fontWeight: "700", fontSize: "11px", color: "var(--color-primary)", letterSpacing: "0.4px", whiteSpace: "nowrap" }}>
                 {match.time}
               </span>
             </div>
           </div>
         </div>
-
-        {/* Row 2: title + chevron */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: score ? "8px" : "12px", gap: "8px" }}>
-          <h3 style={{
-            margin: 0, fontFamily: "var(--font-rajdhani)", fontWeight: "700",
-            fontSize: "clamp(13px, 4vw, 15px)", color: "var(--color-text-dark)",
-            lineHeight: "1.25", letterSpacing: "0.2px", minWidth: 0,
-          }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", gap: "8px" }}>
+          <h3 style={{ margin: 0, fontFamily: "var(--font-rajdhani)", fontWeight: "700", fontSize: "clamp(13px, 4vw, 15px)", color: "var(--color-text-dark)", lineHeight: "1.25", letterSpacing: "0.2px", minWidth: 0 }}>
             {match.title}
           </h3>
-          <MdChevronRight size={20} style={{
-            color: "var(--color-accent)", flexShrink: 0,
-            transform: hovered ? "translateX(3px)" : "translateX(0)",
-            transition: "transform 0.18s",
-          }} />
+          <MdChevronRight size={20} style={{ color: "var(--color-accent)", flexShrink: 0, transform: hovered ? "translateX(3px)" : "translateX(0)", transition: "transform 0.18s" }} />
         </div>
-
-        {/* Live score */}
-        {score && (
-          <div style={{
-            fontSize: "11px", fontFamily: "var(--font-rajdhani)", fontWeight: "600",
-            color: "var(--color-primary)", opacity: 0.85,
-            marginBottom: "10px", letterSpacing: "0.3px",
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          }}>
-            {score}
-          </div>
-        )}
-
-        {/* Venue */}
         {match.venue && (
-          <div style={{
-            fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.35,
-            fontFamily: "var(--font-nunito)", marginBottom: "10px",
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          }}>
+          <div style={{ fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.35, fontFamily: "var(--font-nunito)", marginBottom: "10px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             📍 {match.venue}
           </div>
         )}
-
-        {/* Bet pills */}
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          <BetPill label="Match Bets" value={match.matchBets} />
+          <BetPill label="Match Bets"   value={match.matchBets} />
           <BetPill label="Session Bets" value={match.sessionBets} />
         </div>
       </div>
@@ -220,6 +396,7 @@ const MatchCard = ({ match, activeSport }) => {
   );
 };
 
+// ─── groupByDate ───────────────────────────────────────────────────────────
 function groupByDate(matches) {
   const groups = {};
   matches.forEach((m) => {
@@ -230,9 +407,49 @@ function groupByDate(matches) {
   return groups;
 }
 
+// ─── normalizeMatch ────────────────────────────────────────────────────────
+function extractBestOdds(match) {
+  if (!match.bookmakers || match.bookmakers.length === 0) return { matchBets: "—", sessionBets: "—" };
+  
+  let bestOdds = [];
+  match.bookmakers.forEach(bookmaker => {
+    if (bookmaker.markets && bookmaker.markets.length > 0) {
+      const market = bookmaker.markets[0];
+      if (market.outcomes && market.outcomes.length >= 2) {
+        bestOdds.push(market.outcomes[0].price);
+        bestOdds.push(market.outcomes[1].price);
+      }
+    }
+  });
+  
+  if (bestOdds.length === 0) return { matchBets: "—", sessionBets: "—" };
+  const maxOdds = Math.max(...bestOdds).toFixed(2);
+  const minOdds = Math.min(...bestOdds).toFixed(2);
+  return { matchBets: maxOdds, sessionBets: minOdds };
+}
+
+function normalizeMatch(m, idx) {
+  const { day, month, time } = parseDateTime(m.commence_time);
+  const { matchBets, sessionBets } = extractBestOdds(m);
+  
+  return {
+    id:          m.id || idx,
+    title:       `${m.home_team} vs ${m.away_team}`,
+    subtitle:    m.sport_title || "Cricket",
+    matchBets:   matchBets,
+    sessionBets: sessionBets,
+    day, month, time,
+    venue:       m.venue || "",
+    status:      "scheduled",
+    score:       null,
+    raw:         m,
+    teams:       [m.home_team, m.away_team],
+  };
+}
+
+// ─── Live (main) ───────────────────────────────────────────────────────────
 const Live = () => {
-  const [active, setActive]    = useState("cricket");
-  const [allMatches, setAll]   = useState({});
+  const [allMatches, setAll]   = useState([]);
   const [loading, setLoading]  = useState(false);
   const [error, setError]      = useState(null);
   const [lastFetched, setLast] = useState(null);
@@ -241,37 +458,23 @@ const Live = () => {
     setLoading(true);
     setError(null);
     try {
-      const res  = await fetch(CRICAPI_URL);
-      const json = await res.json();
-      console.log(json)
+      const res  = await fetch(ODDS_URL);
+      const data = await res.json();
+      
+      if (!Array.isArray(data)) throw new Error("Invalid API response format");
 
-      if (json.status !== "success") throw new Error(json.reason || "API error");
+      const todayMatches = [];
 
-      const grouped = { cricket: [], football: [], tennis: [], kabaddi: [], elections: [], tournament: [] };
+      data.forEach((m, idx) => {
+        const dateToUse  = m.commence_time;
 
-      (json.data || [])
-        .filter((m) => isToday(m.dateTimeGMT || m.date))
-        .forEach((m, idx) => {
-          const sport                = detectSport(m);
-          const { day, month, time } = parseDateTime(m.dateTimeGMT || m.date);
+        // Show only today's matches
+        if (isToday(dateToUse)) {
+          todayMatches.push(normalizeMatch(m, idx));
+        }
+      });
 
-          grouped[sport]?.push({
-            id:          m.id || idx,
-            title:       m.name || "Unknown Match",
-            subtitle:    m.series_name || m.matchType?.toUpperCase() || "Cricket",
-            matchBets:   0,
-            sessionBets: 0,
-            day,
-            month,
-            time,
-            venue:       m.venue || "",
-            status:      getMatchStatus(m),
-            score:       m.score || [],
-            raw:         m,
-          });
-        });
-
-      setAll(grouped);
+      setAll(todayMatches);
       setLast(new Date());
     } catch (e) {
       setError(e.message);
@@ -286,9 +489,7 @@ const Live = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const matches     = allMatches[active] ?? [];
-  const activeSport = SPORTS.find((s) => s.id === active);
-  const grouped     = groupByDate(matches);
+  const grouped = groupByDate(allMatches);
 
   const todayLabel = new Date().toLocaleDateString("en-IN", {
     weekday: "long", day: "numeric", month: "long",
@@ -296,95 +497,26 @@ const Live = () => {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--color-bg-main)", fontFamily: "var(--font-nunito)" }}>
-
-      {/* ── Sport tab strip ── */}
-      <div style={{
-        position: "sticky", top: 0, zIndex: 10,
-        backgroundColor: "var(--color-input-bg)",
-        borderBottom: "1px solid var(--color-border)",
-      }}>
-        <div style={{
-          display: "flex", overflowX: "auto", gap: "4px",
-          padding: "8px 10px", scrollbarWidth: "none",
-          WebkitOverflowScrolling: "touch",
-        }}>
-          {SPORTS.map(({ id, label, Icon }) => {
-            const isActive = active === id;
-            const count    = (allMatches[id] ?? []).length;
-            return (
-              <button
-                key={id}
-                onClick={() => setActive(id)}
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: "3px",
-                  padding: "8px 14px 7px", borderRadius: "10px", border: "none",
-                  backgroundColor: isActive ? "var(--color-primary)" : "transparent",
-                  color: isActive ? "var(--color-input-bg)" : "var(--color-accent)",
-                  cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                  outline: "none", transition: "background 0.18s, color 0.18s",
-                  position: "relative",
-                }}
-              >
-                <Icon size={20} />
-                <span style={{
-                  fontFamily: "var(--font-rajdhani)", fontWeight: "700",
-                  fontSize: "10px", letterSpacing: "0.7px",
-                  textTransform: "uppercase", lineHeight: 1,
-                }}>
-                  {label}
-                </span>
-                {count > 0 && (
-                  <span style={{
-                    position: "absolute", top: "4px", right: "4px",
-                    width: "14px", height: "14px", borderRadius: "50%",
-                    backgroundColor: isActive ? "rgba(255,255,255,0.35)" : "var(--color-primary)",
-                    color: isActive ? "var(--color-primary)" : "var(--color-input-bg)",
-                    fontSize: "8px", fontWeight: "700", lineHeight: "14px",
-                    textAlign: "center", fontFamily: "var(--font-rajdhani)",
-                  }}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* ── Content ── */}
       <div style={{
         padding: "16px 12px", maxWidth: "640px", margin: "0 auto",
         display: "flex", flexDirection: "column", gap: "20px",
       }}>
 
-        {/* Toolbar */}
+        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.35, fontFamily: "var(--font-nunito)" }}>
             {lastFetched
               ? `Updated ${lastFetched.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`
               : "Fetching..."}
           </span>
-          <button
-            onClick={fetchMatches}
-            disabled={loading}
-            style={{
-              display: "flex", alignItems: "center", gap: "5px",
-              padding: "4px 10px", borderRadius: "8px", border: "1px solid var(--color-border)",
-              backgroundColor: "transparent", cursor: loading ? "not-allowed" : "pointer",
-              fontSize: "11px", color: "var(--color-primary)",
-              fontFamily: "var(--font-nunito)", fontWeight: "600", opacity: loading ? 0.5 : 1,
-            }}
-          >
-            <MdRefresh size={13} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
-            Refresh
-          </button>
         </div>
 
         {/* Loading skeleton */}
         {loading && !Object.keys(allMatches).length && (
           [1, 2, 3].map(i => (
             <div key={i} style={{
-              height: "130px", borderRadius: "14px",
+              height: "160px", borderRadius: "16px",
               backgroundColor: "var(--color-input-bg)",
               border: "1.5px solid var(--color-border)",
               animation: "pulse 1.5s ease-in-out infinite",
@@ -403,13 +535,13 @@ const Live = () => {
             <strong>API error:</strong> {error}
             <br />
             <span style={{ fontSize: "11px", opacity: 0.7 }}>
-              Make sure your CRICAPI_KEY is set. Get a free key at cricketdata.org
+              Make sure your ODDS_API_KEY is valid. Please check the API configuration.
             </span>
           </div>
         )}
 
         {/* Empty state */}
-        {!loading && !error && matches.length === 0 && (
+        {!loading && !error && allMatches.length === 0 && (
           <div style={{
             display: "flex", flexDirection: "column", alignItems: "center",
             justifyContent: "center", padding: "64px 24px", gap: "12px", textAlign: "center",
@@ -437,22 +569,22 @@ const Live = () => {
               <span style={{
                 fontFamily: "var(--font-rajdhani)", fontWeight: "700",
                 fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase",
-                color: "var(--color-primary)", whiteSpace: "nowrap",
+                color: "var(--color-primary)",
+                whiteSpace: "nowrap",
               }}>
                 {dateLabel}
               </span>
               <span style={{ flex: 1, height: "1px", backgroundColor: "var(--color-border)" }} />
             </div>
-            {groupMatches.map((match) => (
-              <MatchCard key={match.id} match={match} activeSport={activeSport} />
-            ))}
+            {groupMatches.map((match) => <IPLMatchCard key={match.id} match={match} />)}
           </div>
         ))}
       </div>
 
       <style>{`
-        @keyframes spin  { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { opacity:0.6; } 50% { opacity:0.3; } }
+        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes pulse   { 0%,100% { opacity:0.6; } 50% { opacity:0.3; } }
+        @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
       `}</style>
     </div>
   );
