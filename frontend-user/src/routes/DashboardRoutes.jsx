@@ -20,6 +20,7 @@ const DashboardRoutes = () => {
             <Route path="dashboard/settings" element={<Settings />} />
             <Route path="dashboard/ledger" element={<Ledger />} />
             <Route path="dashboard/password" element={<Password />} />
+            
 
         </>
 
