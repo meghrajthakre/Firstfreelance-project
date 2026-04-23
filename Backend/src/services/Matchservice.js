@@ -2,7 +2,7 @@ const axios = require("axios");
 
 const ODDS_API_BASE = "https://api.the-odds-api.com/v4";
 const ODDS_API_KEY = process.env.ODDS_API_KEY;
-const DEFAULT_SPORT = process.env.DEFAULT_SPORT_KEY || "cricket"; // ✅ fixed
+const DEFAULT_SPORT = process.env.DEFAULT_SPORT_KEY || "cricket"; 
 
 /**
  * Fetch live + upcoming matches from the Odds API.
