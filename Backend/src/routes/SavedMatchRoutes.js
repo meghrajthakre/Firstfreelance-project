@@ -5,7 +5,7 @@ const {
   saveMatchHandler,
   getSavedMatchesHandler,
   deleteSavedMatchHandler,
-} = require("../controllers/SavedMatchController");  // Capital S and M
+} = require("../controllers/SavedMatchController");
 
 const router = express.Router();
 
@@ -28,11 +28,11 @@ router.post("/save", saveMatchHandler);
 /**
  * GET /api/matches/saved
  */
-router.get("/saved", getSavedMatchesHandler);
+router.get("/saved",   getSavedMatchesHandler);
 
 /**
  * DELETE /api/matches/:matchId
  */
-router.delete("/:matchId", deleteSavedMatchHandler);
+router.delete("/:matchId",   deleteSavedMatchHandler);
 
 module.exports = router;
