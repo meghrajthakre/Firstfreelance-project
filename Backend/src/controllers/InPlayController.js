@@ -1,4 +1,4 @@
-const { fetchMatches } = require("../services/matchService");
+const { fetchMatches } = require("../services/Matchservice");
 
 /**
  * GET /api/matches?filter=today|upcoming
