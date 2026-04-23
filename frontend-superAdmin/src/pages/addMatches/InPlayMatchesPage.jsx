@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000"; // Adjust if your backend runs elsewhere
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 export default function InPlayMatchesPage() {
   const [matches, setMatches] = useState([]);
@@ -20,7 +20,9 @@ export default function InPlayMatchesPage() {
       setLoading(true);
       setError(null);
       try {
-        const res  = await fetch(`${API_BASE}/api/matches?filter=upcoming`);
+        const res  = await fetch(`${API_BASE}/api/matches?filter=upcoming`, {
+          credentials: "include", // ✅ include cookies
+        });
         const json = await res.json();
 
         if (!res.ok) throw new Error(json.message || "Failed to fetch matches.");
@@ -60,13 +62,11 @@ export default function InPlayMatchesPage() {
 
     setSaving(id);
     try {
-      const token = localStorage.getItem("token");
-
       const res = await fetch(`${API_BASE}/api/matches/save`, {
-        method: "POST",
+        method:      "POST",
+        credentials: "include", // ✅ sends sa_accessToken cookie automatically
         headers: {
           "Content-Type": "application/json",
-          Authorization:  `Bearer ${token}`,
         },
         body: JSON.stringify({
           matchId:      m.matchId,
@@ -91,10 +91,22 @@ export default function InPlayMatchesPage() {
     }
   };
 
-  // ─── Remove from local list ───────────────────────────────────────────────
-  const handleDelete = (id) => {
-    setMatches((p) => p.filter((m) => m.id !== id));
-    showToast("Removed from list.", "error");
+  // ─── Delete saved match ───────────────────────────────────────────────────
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/matches/${id}`, {
+        method:      "DELETE",
+        credentials: "include", // ✅ sends sa_accessToken cookie automatically
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Could not delete match.");
+
+      setMatches((p) => p.filter((m) => m.id !== id));
+      showToast("Removed from list.", "error");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -175,7 +187,6 @@ export default function InPlayMatchesPage() {
                           </span>
                           <span className="font-medium text-gray-900">{m.awayTeam}</span>
                         </div>
-                        {/* Sport + datetime shown inline on small screens */}
                         <div className="mt-1 flex flex-wrap gap-2 sm:hidden">
                           <span className="text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full font-medium">
                             {m.sport}

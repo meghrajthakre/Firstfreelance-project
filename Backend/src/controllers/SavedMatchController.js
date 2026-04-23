@@ -6,11 +6,9 @@ const {
 } = require("../services/Savedmatchservice");
 
 /**
- * POST /api/matches/save
- * Save a match for the authenticated user.
+ * POST /api/matches/save  — superadmin only
  */
 const saveMatchHandler = async (req, res) => {
-  // express-validator errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({
@@ -21,7 +19,7 @@ const saveMatchHandler = async (req, res) => {
   }
 
   try {
-    const userId = req.user.id;
+    const userId = req.user.id; // ← protect guarantees this exists
     const saved = await saveMatch(userId, req.body);
 
     return res.status(201).json({
@@ -39,13 +37,11 @@ const saveMatchHandler = async (req, res) => {
 };
 
 /**
- * GET /api/matches/saved
- * Retrieve all saved matches for the authenticated user.
+ * GET /api/matches/saved  — public
  */
 const getSavedMatchesHandler = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const matches = await getSavedMatches(userId);
+    const matches = await getSavedMatches(); // ← no userId filter, returns all
 
     return res.status(200).json({
       success: true,
@@ -53,10 +49,7 @@ const getSavedMatchesHandler = async (req, res) => {
       data: matches,
     });
   } catch (err) {
-    console.error(
-      "[savedMatchController.getSavedMatchesHandler]",
-      err.message
-    );
+    console.error("[savedMatchController.getSavedMatchesHandler]", err.message);
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve saved matches.",
@@ -65,12 +58,11 @@ const getSavedMatchesHandler = async (req, res) => {
 };
 
 /**
- * DELETE /api/matches/:matchId
- * Remove a saved match for the authenticated user.
+ * DELETE /api/matches/:matchId  — superadmin only
  */
 const deleteSavedMatchHandler = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id; // ← protect guarantees this exists
     const { matchId } = req.params;
 
     const deleted = await deleteSavedMatch(userId, matchId);
@@ -81,10 +73,7 @@ const deleteSavedMatchHandler = async (req, res) => {
       data: deleted,
     });
   } catch (err) {
-    console.error(
-      "[savedMatchController.deleteSavedMatchHandler]",
-      err.message
-    );
+    console.error("[savedMatchController.deleteSavedMatchHandler]", err.message);
     return res.status(err.statusCode || 500).json({
       success: false,
       message: err.message || "Failed to delete saved match.",

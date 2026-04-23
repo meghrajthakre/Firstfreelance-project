@@ -6,33 +6,17 @@ const {
   getSavedMatchesHandler,
   deleteSavedMatchHandler,
 } = require("../controllers/SavedMatchController");
+const { protect } = require("../middleware/authMiddleware");
+const { superAdminOnly } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-
 // ─── Public ──────────────────────────────────────────────────────────────────
+router.get("/",      getMatches);
+router.get("/saved", getSavedMatchesHandler);  // ← public
 
-/**
- * GET /api/matches
- * Query params: ?filter=today | ?filter=upcoming
- */
-router.get("/", getMatches);
-
-// ─── Protected ───────────────────────────────────────────────────────────────
-
-/**
- * POST /api/matches/save
- */
-router.post("/save", saveMatchHandler);
-
-/**
- * GET /api/matches/saved
- */
-router.get("/saved",   getSavedMatchesHandler);
-
-/**
- * DELETE /api/matches/:matchId
- */
-router.delete("/:matchId",   deleteSavedMatchHandler);
+// ─── Superadmin only ─────────────────────────────────────────────────────────
+router.post("/save",       protect, superAdminOnly, saveMatchHandler);
+router.delete("/:matchId", protect, superAdminOnly, deleteSavedMatchHandler);
 
 module.exports = router;
