@@ -17,6 +17,8 @@ const masterRoutes = require("./src/routes/masterRoutes");
 const superUserRoutes = require("./src/routes/superadminUserRoutes");
 const bannerRoutes = require("./src/routes/bannerRoutes");
 const superRoutes = require("./src/routes/superRoutes");
+const { saveMatch } = require("./src/services/Savedmatchservice");
+const savedMatchRoutes = require("./src/routes/SavedMatchRoutes");
 
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
@@ -145,6 +147,8 @@ app.use("/api/master", masterRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/banner", bannerRoutes);
 app.use("/api/superadmin", superRoutes);
+app.use("/api/matches", savedMatchRoutes);
+
 // ── 404 + global error handler (must be last) ─────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
