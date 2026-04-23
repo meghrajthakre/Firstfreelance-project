@@ -1,4 +1,4 @@
-const SavedMatch = require("../models/SavedMatch");
+const SavedMatch = require("../models/Savedmatch");
 
 /**
  * Save a match for a user.
