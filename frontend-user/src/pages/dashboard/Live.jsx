@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { MdAccessTime } from "react-icons/md";
 import { IoTrophyOutline } from "react-icons/io5";
-
-// ─── CONFIG ────────────────────────────────────────────────────────────────
-const API_BASE = "http://localhost:5000";
+import { getSavedMatches } from "../../api/userService";
 
 // ─── IPL Team colors ───────────────────────────────────────────────────────
 const IPL_TEAMS = {
@@ -370,43 +368,25 @@ const Live = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/matches/saved`, {
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const json = await res.json();
+      const response = await getSavedMatches();
+      // response is already the parsed data from API interceptor
+      const savedMatches = response.data || response;
 
-      if (!res.ok) {
-        throw new Error(json.message || "Failed to fetch saved matches.");
-      }
-
-      const savedMatches = json.data || json;
       if (!Array.isArray(savedMatches)) {
         throw new Error("Unexpected response format.");
       }
 
-      // Filter: only matches scheduled for today
-      const todayMatches = savedMatches.filter(match => 
-        isToday(match.commenceTime)
-      );
-
-      // Normalize matches for UI
+      const todayMatches = savedMatches.filter(match => isToday(match.commenceTime));
       const normalizedMatches = todayMatches.map(normalizeSavedMatch);
-      
-      // Sort by commenceTime (earliest first)
-      normalizedMatches.sort((a, b) => {
-        const timeA = new Date(a.raw.commenceTime);
-        const timeB = new Date(b.raw.commenceTime);
-        return timeA - timeB;
-      });
+      normalizedMatches.sort((a, b) => 
+        new Date(a.raw.commenceTime) - new Date(b.raw.commenceTime)
+      );
 
       setMatches(normalizedMatches);
       setLastFetched(new Date());
     } catch (err) {
       console.error("Error fetching saved matches:", err);
-      setError(err.message);
+      setError(err.message || "Failed to load matches");
     } finally {
       setLoading(false);
     }
@@ -414,11 +394,10 @@ const Live = () => {
 
   useEffect(() => {
     fetchSavedMatches();
-    const interval = setInterval(fetchSavedMatches, 60000); // Refresh every minute
+    const interval = setInterval(fetchSavedMatches, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Group matches by date (though all are today, group by day-month for consistency)
   const groupByDate = (matchesList) => {
     const groups = {};
     matchesList.forEach((m) => {
@@ -490,7 +469,7 @@ const Live = () => {
             <strong>Error:</strong> {error}
             <br />
             <span style={{ fontSize: "11px", opacity: 0.7 }}>
-              Make sure your backend server is running at {API_BASE}
+              Please check your connection and try again later.
             </span>
           </div>
         )}

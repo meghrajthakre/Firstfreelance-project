@@ -11,3 +11,6 @@ export const getMe = () =>
 
 export const getBanner    = () => API.get("/banner").then((r) => r.data);
 export const updateBanner = (text) => API.put("/banner", { text }).then((r) => r.data);
+
+export const getSavedMatches = () =>
+  API.get("/matches/saved").then((res) => res.data);
