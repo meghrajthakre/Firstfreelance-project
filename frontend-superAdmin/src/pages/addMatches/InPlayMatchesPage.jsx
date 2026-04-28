@@ -1,27 +1,47 @@
 import { useState, useEffect } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE ;
+const API_BASE = "http://localhost:5000";
+const STORAGE_KEY = "savedMatchIds";
+
+// ─── LocalStorage helpers ─────────────────────────────────────────────────
+const getSavedIds = () => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"));
+  } catch {
+    return new Set();
+  }
+};
+
+const persistSavedIds = (set) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...set]));
+};
 
 export default function InPlayMatchesPage() {
-  const [matches, setMatches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
-  const [saving, setSaving]   = useState(null);
-  const [toast, setToast]     = useState(null);
+  const [matches, setMatches]     = useState([]);
+  const [savedIds, setSavedIds]   = useState(getSavedIds); // initialise from localStorage
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
+  const [saving, setSaving]       = useState(null);
+  const [toast, setToast]         = useState(null);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 2500);
   };
 
-  // ─── Fetch matches ────────────────────────────────────────────────────────
+  // Keep localStorage in sync whenever savedIds changes
+  useEffect(() => {
+    persistSavedIds(savedIds);
+  }, [savedIds]);
+
+  // ─── Fetch matches ──────────────────────────────────────────────────────
   useEffect(() => {
     const fetchMatches = async () => {
       setLoading(true);
       setError(null);
       try {
         const res  = await fetch(`${API_BASE}/api/matches?filter=upcoming`, {
-          credentials: "include", // ✅ include cookies
+          credentials: "include",
         });
         const json = await res.json();
 
@@ -45,6 +65,26 @@ export default function InPlayMatchesPage() {
         }));
 
         setMatches(normalised);
+
+        // ── Optionally sync saved state from the server ──────────────────
+        // Merges server-saved IDs with localStorage so neither source is lost.
+        try {
+          const savedRes = await fetch(`${API_BASE}/api/matches/saved`, {
+            credentials: "include",
+          });
+          if (savedRes.ok) {
+            const savedJson = await savedRes.json();
+            const list = savedJson.data ?? savedJson;
+            if (Array.isArray(list) && list.length > 0) {
+              const serverIds = new Set(list.map((m) => m.matchId ?? m.id));
+              // Merge: keep localStorage IDs + add any new ones from server
+              setSavedIds((prev) => new Set([...prev, ...serverIds]));
+            }
+            // If server returns empty array, keep localStorage state as-is
+          }
+        } catch {
+          // Silently fall back to localStorage — no server /saved endpoint needed
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -55,8 +95,9 @@ export default function InPlayMatchesPage() {
     fetchMatches();
   }, []);
 
-  // ─── Save match ───────────────────────────────────────────────────────────
+  // ─── Save match ─────────────────────────────────────────────────────────
   const handleAdd = async (id) => {
+    if (savedIds.has(id)) return; // already saved — button is just decorative
     const m = matches.find((x) => x.id === id);
     if (!m) return;
 
@@ -64,10 +105,8 @@ export default function InPlayMatchesPage() {
     try {
       const res = await fetch(`${API_BASE}/api/matches/save`, {
         method:      "POST",
-        credentials: "include", // ✅ sends sa_accessToken cookie automatically
-        headers: {
-          "Content-Type": "application/json",
-        },
+        credentials: "include",
+        headers:     { "Content-Type": "application/json" },
         body: JSON.stringify({
           matchId:      m.matchId,
           homeTeam:     m.homeTeam,
@@ -80,9 +119,15 @@ export default function InPlayMatchesPage() {
 
       const json = await res.json();
 
-      if (res.status === 409) { showToast("Already saved.", "warning"); return; }
+      if (res.status === 409) {
+        // Backend says already saved — mark it so the UI is consistent
+        setSavedIds((prev) => new Set([...prev, id]));
+        showToast("Already saved.", "warning");
+        return;
+      }
       if (!res.ok) throw new Error(json.message || "Could not save match.");
 
+      setSavedIds((prev) => new Set([...prev, id]));
       showToast(`Saved: ${m.homeTeam} vs ${m.awayTeam}`);
     } catch (err) {
       showToast(err.message, "error");
@@ -91,25 +136,30 @@ export default function InPlayMatchesPage() {
     }
   };
 
-  // ─── Delete saved match ───────────────────────────────────────────────────
+  // ─── Delete saved match ─────────────────────────────────────────────────
   const handleDelete = async (id) => {
     try {
       const res = await fetch(`${API_BASE}/api/matches/${id}`, {
         method:      "DELETE",
-        credentials: "include", // ✅ sends sa_accessToken cookie automatically
+        credentials: "include",
       });
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Could not delete match.");
 
       setMatches((p) => p.filter((m) => m.id !== id));
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       showToast("Removed from list.", "error");
     } catch (err) {
       showToast(err.message, "error");
     }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ─── Render ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-5xl mx-auto">
@@ -173,67 +223,80 @@ export default function InPlayMatchesPage() {
 
                 {/* Rows */}
                 {!loading &&
-                  matches.map((m) => (
-                    <tr
-                      key={m.id}
-                      className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
-                    >
-                      {/* Match title */}
-                      <td className="px-5 py-4">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-medium text-gray-900">{m.homeTeam}</span>
-                          <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-medium">
-                            vs
-                          </span>
-                          <span className="font-medium text-gray-900">{m.awayTeam}</span>
-                        </div>
-                        <div className="mt-1 flex flex-wrap gap-2 sm:hidden">
-                          <span className="text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full font-medium">
+                  matches.map((m) => {
+                    const isSaved = savedIds.has(m.id);
+                    return (
+                      <tr
+                        key={m.id}
+                        className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                      >
+                        {/* Match title */}
+                        <td className="px-5 py-4">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="font-medium text-gray-900">{m.homeTeam}</span>
+                            <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-medium">
+                              vs
+                            </span>
+                            <span className="font-medium text-gray-900">{m.awayTeam}</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-2 sm:hidden">
+                            <span className="text-xs text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full font-medium">
+                              {m.sport}
+                            </span>
+                            <span className="text-xs text-gray-400">{m.dateTime}</span>
+                          </div>
+                        </td>
+
+                        {/* Sport badge */}
+                        <td className="px-4 py-4 hidden sm:table-cell">
+                          <span className="text-xs font-medium text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">
                             {m.sport}
                           </span>
-                          <span className="text-xs text-gray-400">{m.dateTime}</span>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Sport badge */}
-                      <td className="px-4 py-4 hidden sm:table-cell">
-                        <span className="text-xs font-medium text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">
-                          {m.sport}
-                        </span>
-                      </td>
+                        {/* Date/time */}
+                        <td className="px-4 py-4 text-gray-500 whitespace-nowrap tabular-nums text-xs hidden md:table-cell">
+                          {m.dateTime}
+                        </td>
 
-                      {/* Date/time */}
-                      <td className="px-4 py-4 text-gray-500 whitespace-nowrap tabular-nums text-xs hidden md:table-cell">
-                        {m.dateTime}
-                      </td>
+                        {/* Add / Added button */}
+                        <td className="px-4 py-4">
+                          {isSaved ? (
+                            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 border border-emerald-200 text-xs font-semibold px-3 py-1.5 rounded-lg min-w-[72px] justify-center select-none">
+                              {/* Checkmark icon */}
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="2,8 6,12 14,4"/>
+                              </svg>
+                              Added
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleAdd(m.id)}
+                              disabled={saving === m.id}
+                              className="bg-teal-500 hover:bg-teal-600 disabled:bg-teal-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors min-w-[72px] text-center"
+                            >
+                              {saving === m.id ? "Saving…" : "Add"}
+                            </button>
+                          )}
+                        </td>
 
-                      {/* Add */}
-                      <td className="px-4 py-4">
-                        <button
-                          onClick={() => handleAdd(m.id)}
-                          disabled={saving === m.id}
-                          className="bg-teal-500 hover:bg-teal-600 disabled:bg-teal-300 disabled:cursor-not-allowed text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-colors min-w-[60px] text-center"
-                        >
-                          {saving === m.id ? "Saving…" : "Add"}
-                        </button>
-                      </td>
-
-                      {/* Delete */}
-                      <td className="px-4 py-4">
-                        <button
-                          onClick={() => handleDelete(m.id)}
-                          className="flex items-center gap-1 text-gray-400 hover:text-red-500 hover:bg-red-50 text-xs font-medium px-2 py-1.5 rounded-lg transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="2,4 14,4"/>
-                            <path d="M5,4V3a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1V4"/>
-                            <path d="M12,4l-1,9H5L4,4"/>
-                          </svg>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        {/* Delete */}
+                        <td className="px-4 py-4">
+                          <button
+                            onClick={() => handleDelete(m.id)}
+                            className="flex items-center gap-1 text-gray-400 hover:text-red-500 hover:bg-red-50 text-xs font-medium px-2 py-1.5 rounded-lg transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="2,4 14,4"/>
+                              <path d="M5,4V3a1,1,0,0,1,1-1h4a1,1,0,0,1,1,1V4"/>
+                              <path d="M12,4l-1,9H5L4,4"/>
+                            </svg>
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
