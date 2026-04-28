@@ -506,7 +506,7 @@ const Live = () => {
               color: "var(--color-text-dark)", 
               opacity: 0.4 
             }}>
-              No saved matches for today
+              No matches for today
             </p>
             <p style={{ 
               margin: 0, 
