@@ -161,10 +161,10 @@ export default function InPlayMatchesPage() {
 
   // ─── Render ─────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen  ">
       <div className="max-w-5xl mx-auto">
 
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-5">
+        <h1 className="text-xl sm:text-2xl font-semibold text-center text-gray-800 mb-5">
           In Play Matches
         </h1>
 
