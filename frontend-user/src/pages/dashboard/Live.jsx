@@ -1,19 +1,9 @@
 import { useState, useEffect } from "react";
-import {
-  MdSportsCricket,
-  MdSportsFootball,
-  MdSportsTennis,
-  MdEmojiEvents,
-  MdHowToVote,
-  MdChevronRight,
-  MdAccessTime,
-  MdRefresh,
-} from "react-icons/md";
+import { MdAccessTime } from "react-icons/md";
 import { IoTrophyOutline } from "react-icons/io5";
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
-const ODDS_API_KEY = "8297e0b75b4fd8aefb660adb39809c17";
-const ODDS_URL = `https://api.the-odds-api.com/v4/sports/cricket/odds/?apiKey=${ODDS_API_KEY}&regions=uk&markets=h2h`;
+const API_BASE = "http://localhost:5000";
 
 // ─── IPL Team colors ───────────────────────────────────────────────────────
 const IPL_TEAMS = {
@@ -70,68 +60,82 @@ const IPL_TEAMS = {
 };
 
 function getTeamMeta(name) {
-  return IPL_TEAMS[name] || { short: name?.slice(0, 3).toUpperCase() || "—", primary: "#0d9488", secondary: "#ffffff" };
+  return IPL_TEAMS[name] || { 
+    short: name?.slice(0, 3).toUpperCase() || "—", 
+    primary: "#0d9488", 
+    secondary: "#ffffff" 
+  };
 }
 
-// ─── Sports tabs ───────────────────────────────────────────────────────────
-const SPORTS = [
-  { id: "ipl",        label: "IPL",        Icon: MdSportsCricket },
-  { id: "cricket",    label: "Cricket",    Icon: MdSportsCricket },
-  { id: "football",   label: "Football",   Icon: MdSportsFootball },
-  { id: "tennis",     label: "Tennis",     Icon: MdSportsTennis },
-  { id: "kabaddi",    label: "Kabaddi",    Icon: MdSportsCricket },
-  { id: "elections",  label: "Elections",  Icon: MdHowToVote },
-  { id: "tournament", label: "Tournament", Icon: MdEmojiEvents },
-];
-
-// ─── Helpers ───────────────────────────────────────────────────────────────
+// ─── Helper: Check if date is today ───────────────────────────────────────
 function isToday(dateStr) {
   if (!dateStr) return false;
-  const d     = new Date(dateStr);
+  const d = new Date(dateStr);
   const today = new Date();
   return (
     d.getFullYear() === today.getFullYear() &&
-    d.getMonth()    === today.getMonth()    &&
-    d.getDate()     === today.getDate()
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
   );
 }
 
+// ─── Helper: Parse date/time ──────────────────────────────────────────────
 function parseDateTime(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d)) return { day: "—", month: "—", time: "—" };
   return {
-    day:   d.getDate().toString(),
+    day: d.getDate().toString(),
     month: d.toLocaleString("en-IN", { month: "long" }),
-    time:  d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toUpperCase(),
+    time: d.toLocaleTimeString("en-IN", { 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      hour12: true 
+    }).toUpperCase(),
   };
 }
 
-function getMatchStatus(m) {
-  if (m.matchStarted && !m.matchEnded) return "live";
-  if (m.matchEnded)                    return "completed";
-  return "scheduled";
+// ─── Extract odds from saved match structure ──────────────────────────────
+function extractBestOdds(match) {
+  const odds = match.odds;
+  if (!odds?.bookmakers?.length) return { matchBets: "—", sessionBets: "—" };
+  
+  let bestOdds = [];
+  odds.bookmakers.forEach(bookmaker => {
+    if (bookmaker.markets && bookmaker.markets.length > 0) {
+      const market = bookmaker.markets[0];
+      if (market.outcomes && market.outcomes.length >= 2) {
+        bestOdds.push(market.outcomes[0].price);
+        bestOdds.push(market.outcomes[1].price);
+      }
+    }
+  });
+  
+  if (bestOdds.length === 0) return { matchBets: "—", sessionBets: "—" };
+  const maxOdds = Math.max(...bestOdds).toFixed(2);
+  const minOdds = Math.min(...bestOdds).toFixed(2);
+  return { matchBets: maxOdds, sessionBets: minOdds };
 }
 
-function getScore(m) {
-  if (!m.score?.length) return null;
-  return m.score
-    .map(s => `${s.inning.replace(" Inning 1","").replace(" Inning 2","")} ${s.r}/${s.w} (${s.o})`)
-    .join("  |  ");
-}
-
-function isIPL(m) {
-  return (m.series_name || m.name || "").toLowerCase().includes("indian premier league");
-}
-
-function detectSport(m) {
-  const sport = m.sport_key?.toLowerCase() || "";
-  if (sport.includes("ipl")) return "ipl";
-  if (sport.includes("psl")) return "cricket";
-  if (sport.includes("odi") || sport.includes("t20") || sport.includes("test")) return "cricket";
-  if (sport.includes("football")) return "football";
-  if (sport.includes("tennis")) return "tennis";
-  if (sport.includes("kabaddi")) return "kabaddi";
-  return "cricket";
+// ─── Normalize saved match for UI ─────────────────────────────────────────
+function normalizeSavedMatch(m) {
+  const { day, month, time } = parseDateTime(m.commenceTime);
+  const { matchBets, sessionBets } = extractBestOdds(m);
+  
+  return {
+    id: m.matchId,
+    title: `${m.homeTeam} vs ${m.awayTeam}`,
+    subtitle: m.sportKey || "Cricket",
+    matchBets,
+    sessionBets,
+    day,
+    month,
+    time,
+    venue: m.venue || "",
+    status: "scheduled",
+    score: null,
+    raw: m,
+    teams: [m.homeTeam, m.awayTeam],
+  };
 }
 
 // ─── TeamBadge ─────────────────────────────────────────────────────────────
@@ -162,11 +166,65 @@ const TeamBadge = ({ name }) => {
   );
 };
 
-// ─── IPLMatchCard ──────────────────────────────────────────────────────────
+// ─── StatusBadge ──────────────────────────────────────────────────────────
+const StatusBadge = ({ status }) => {
+  const config = {
+    live:      { label: "● LIVE",    color: "#ef4444", bg: "#fef2f2" },
+    completed: { label: "Completed", color: "#6b7280", bg: "#f3f4f6" },
+    scheduled: { label: "Upcoming",  color: "#0d9488", bg: "#f0fdfa" },
+  }[status] || { label: status, color: "#6b7280", bg: "#f3f4f6" };
+
+  return (
+    <span style={{
+      fontSize: "10px", fontWeight: "700", letterSpacing: "0.5px",
+      padding: "2px 7px", borderRadius: "20px",
+      color: config.color, backgroundColor: config.bg,
+      fontFamily: "var(--font-rajdhani)", flexShrink: 0,
+    }}>
+      {config.label}
+    </span>
+  );
+};
+
+// ─── SavedBadge ───────────────────────────────────────────────────────────
+const SavedBadge = () => (
+  <span style={{
+    display: "inline-flex", alignItems: "center", gap: "4px",
+    fontSize: "10px", fontWeight: "700", letterSpacing: "0.5px",
+    padding: "2px 8px", borderRadius: "20px",
+    color: "#059669", backgroundColor: "#ecfdf5",
+    border: "1px solid #6ee7b7",
+    fontFamily: "var(--font-rajdhani)", flexShrink: 0,
+  }}>
+    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="1,6 4.5,9.5 11,2.5"/>
+    </svg>
+    ADDED
+  </span>
+);
+
+// ─── BetPill ──────────────────────────────────────────────────────────────
+const BetPill = ({ label, value }) => (
+  <div style={{
+    display: "inline-flex", alignItems: "center", gap: "5px",
+    padding: "4px 10px", borderRadius: "6px",
+    backgroundColor: "var(--color-bg-main)",
+    border: "1px solid var(--color-border)", flexShrink: 0,
+  }}>
+    <span style={{ fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.5, fontFamily: "var(--font-nunito)", whiteSpace: "nowrap" }}>
+      {label}
+    </span>
+    <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--color-primary)", fontFamily: "var(--font-rajdhani)", lineHeight: 1 }}>
+      {value}
+    </span>
+  </div>
+);
+
+// ─── IPLMatchCard ─────────────────────────────────────────────────────────
 const IPLMatchCard = ({ match }) => {
   const [hovered, setHovered] = useState(false);
-  const teamA  = match.teams?.[0] || match.raw?.home_team || "TBA";
-  const teamB  = match.teams?.[1] || match.raw?.away_team || "TBA";
+  const teamA = match.teams?.[0] || "TBA";
+  const teamB = match.teams?.[1] || "TBA";
   const isLive = match.status === "live";
 
   return (
@@ -213,6 +271,7 @@ const IPLMatchCard = ({ match }) => {
             {match.subtitle}
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <SavedBadge />
             <StatusBadge status={match.status} />
             <div style={{
               display: "flex", alignItems: "center", gap: "4px",
@@ -245,32 +304,6 @@ const IPLMatchCard = ({ match }) => {
           <TeamBadge name={teamB} />
         </div>
 
-        {/* Live score */}
-        {match.score && (
-          <div style={{
-            padding: "8px 10px", borderRadius: "8px",
-            backgroundColor: "var(--color-bg-main)",
-            border: "1px solid var(--color-border)",
-            fontSize: "11px", fontFamily: "var(--font-rajdhani)", fontWeight: "600",
-            color: "var(--color-primary)", letterSpacing: "0.3px",
-            marginBottom: "10px",
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          }}>
-            🏏 {match.score}
-          </div>
-        )}
-
-        {/* Match status text */}
-        {match.raw?.status && match.raw.status !== "Match not started" && (
-          <div style={{
-            fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.5,
-            fontFamily: "var(--font-nunito)", marginBottom: "10px",
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          }}>
-            {match.raw.status}
-          </div>
-        )}
-
         {/* Venue */}
         {match.venue && (
           <div style={{
@@ -284,7 +317,7 @@ const IPLMatchCard = ({ match }) => {
 
         {/* Bet pills */}
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          <BetPill label="Match Bets"   value={match.matchBets} />
+          <BetPill label="Match Bets" value={match.matchBets} />
           <BetPill label="Session Bets" value={match.sessionBets} />
         </div>
       </div>
@@ -292,283 +325,231 @@ const IPLMatchCard = ({ match }) => {
   );
 };
 
-// ─── BetPill ───────────────────────────────────────────────────────────────
-const BetPill = ({ label, value }) => (
+// ─── SkeletonCard ─────────────────────────────────────────────────────────
+const SkeletonCard = () => (
   <div style={{
-    display: "inline-flex", alignItems: "center", gap: "5px",
-    padding: "4px 10px", borderRadius: "6px",
-    backgroundColor: "var(--color-bg-main)",
-    border: "1px solid var(--color-border)", flexShrink: 0,
+    borderRadius: "16px", overflow: "hidden",
+    backgroundColor: "var(--color-input-bg)",
+    border: "1.5px solid var(--color-border)",
+    animation: "pulse 1.5s ease-in-out infinite",
+    padding: "14px 16px",
   }}>
-    <span style={{ fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.5, fontFamily: "var(--font-nunito)", whiteSpace: "nowrap" }}>
-      {label}
-    </span>
-    <span style={{ fontSize: "13px", fontWeight: "700", color: "var(--color-primary)", fontFamily: "var(--font-rajdhani)", lineHeight: 1 }}>
-      {value}
-    </span>
+    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "14px" }}>
+      <div style={{ height: "12px", width: "80px", borderRadius: "6px", backgroundColor: "var(--color-border)" }} />
+      <div style={{ display: "flex", gap: "6px" }}>
+        <div style={{ height: "20px", width: "52px", borderRadius: "20px", backgroundColor: "var(--color-border)" }} />
+        <div style={{ height: "20px", width: "64px", borderRadius: "20px", backgroundColor: "var(--color-border)" }} />
+      </div>
+    </div>
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+        <div style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: "var(--color-border)" }} />
+        <div style={{ height: "10px", width: "56px", borderRadius: "4px", backgroundColor: "var(--color-border)" }} />
+      </div>
+      <div style={{ width: "24px", height: "14px", borderRadius: "4px", backgroundColor: "var(--color-border)", flexShrink: 0 }} />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+        <div style={{ width: "44px", height: "44px", borderRadius: "50%", backgroundColor: "var(--color-border)" }} />
+        <div style={{ height: "10px", width: "56px", borderRadius: "4px", backgroundColor: "var(--color-border)" }} />
+      </div>
+    </div>
+    <div style={{ display: "flex", gap: "8px" }}>
+      <div style={{ height: "28px", width: "100px", borderRadius: "6px", backgroundColor: "var(--color-border)" }} />
+      <div style={{ height: "28px", width: "100px", borderRadius: "6px", backgroundColor: "var(--color-border)" }} />
+    </div>
   </div>
 );
 
-// ─── StatusBadge ───────────────────────────────────────────────────────────
-const StatusBadge = ({ status }) => {
-  const config = {
-    live:      { label: "● LIVE",    color: "#ef4444", bg: "#fef2f2" },
-    completed: { label: "Completed", color: "#6b7280", bg: "#f3f4f6" },
-    scheduled: { label: "Upcoming",  color: "#0d9488", bg: "#f0fdfa" },
-  }[status] || { label: status, color: "#6b7280", bg: "#f3f4f6" };
-
-  return (
-    <span style={{
-      fontSize: "10px", fontWeight: "700", letterSpacing: "0.5px",
-      padding: "2px 7px", borderRadius: "20px",
-      color: config.color, backgroundColor: config.bg,
-      fontFamily: "var(--font-rajdhani)", flexShrink: 0,
-    }}>
-      {config.label}
-    </span>
-  );
-};
-
-// ─── MatchCard (non-IPL) ───────────────────────────────────────────────────
-const MatchCard = ({ match, activeSport }) => {
-  const [hovered, setHovered] = useState(false);
-  const ActiveIcon = activeSport?.Icon;
-
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: "relative", backgroundColor: "var(--color-input-bg)",
-        borderRadius: "14px",
-        border: `1.5px solid ${hovered ? "var(--color-primary)" : "var(--color-border)"}`,
-        overflow: "hidden", cursor: "pointer",
-        transform: hovered ? "translateY(-2px)" : "translateY(0)",
-        transition: "border-color 0.18s, transform 0.18s",
-      }}
-    >
-      <div style={{
-        position: "absolute", top: 0, left: 0, height: "3px", width: "100%",
-        backgroundColor: "var(--color-primary)", transformOrigin: "left",
-        transform: hovered ? "scaleX(1)" : "scaleX(0)", transition: "transform 0.25s ease",
-      }} />
-      <div style={{ padding: "14px 16px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", gap: "8px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
-            <div style={{
-              width: "34px", height: "34px", minWidth: "34px", borderRadius: "9px",
-              backgroundColor: "var(--color-primary)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              {ActiveIcon && <ActiveIcon size={18} style={{ color: "var(--color-text-muted)" }} />}
-            </div>
-            <span style={{ fontSize: "12px", fontWeight: "600", opacity: 0.45, color: "var(--color-text-dark)", fontFamily: "var(--font-nunito)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {match.subtitle}
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-            <StatusBadge status={match.status} />
-            <div style={{ display: "flex", alignItems: "center", gap: "4px", padding: "3px 8px", borderRadius: "20px", backgroundColor: "var(--color-bg-main)", border: "1px solid var(--color-border)" }}>
-              <MdAccessTime size={12} style={{ color: "var(--color-primary)", opacity: 0.8 }} />
-              <span style={{ fontFamily: "var(--font-rajdhani)", fontWeight: "700", fontSize: "11px", color: "var(--color-primary)", letterSpacing: "0.4px", whiteSpace: "nowrap" }}>
-                {match.time}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", gap: "8px" }}>
-          <h3 style={{ margin: 0, fontFamily: "var(--font-rajdhani)", fontWeight: "700", fontSize: "clamp(13px, 4vw, 15px)", color: "var(--color-text-dark)", lineHeight: "1.25", letterSpacing: "0.2px", minWidth: 0 }}>
-            {match.title}
-          </h3>
-          <MdChevronRight size={20} style={{ color: "var(--color-accent)", flexShrink: 0, transform: hovered ? "translateX(3px)" : "translateX(0)", transition: "transform 0.18s" }} />
-        </div>
-        {match.venue && (
-          <div style={{ fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.35, fontFamily: "var(--font-nunito)", marginBottom: "10px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            📍 {match.venue}
-          </div>
-        )}
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          <BetPill label="Match Bets"   value={match.matchBets} />
-          <BetPill label="Session Bets" value={match.sessionBets} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── groupByDate ───────────────────────────────────────────────────────────
-function groupByDate(matches) {
-  const groups = {};
-  matches.forEach((m) => {
-    const key = `${m.day} ${m.month}`;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(m);
-  });
-  return groups;
-}
-
-// ─── normalizeMatch ────────────────────────────────────────────────────────
-function extractBestOdds(match) {
-  if (!match.bookmakers || match.bookmakers.length === 0) return { matchBets: "—", sessionBets: "—" };
-  
-  let bestOdds = [];
-  match.bookmakers.forEach(bookmaker => {
-    if (bookmaker.markets && bookmaker.markets.length > 0) {
-      const market = bookmaker.markets[0];
-      if (market.outcomes && market.outcomes.length >= 2) {
-        bestOdds.push(market.outcomes[0].price);
-        bestOdds.push(market.outcomes[1].price);
-      }
-    }
-  });
-  
-  if (bestOdds.length === 0) return { matchBets: "—", sessionBets: "—" };
-  const maxOdds = Math.max(...bestOdds).toFixed(2);
-  const minOdds = Math.min(...bestOdds).toFixed(2);
-  return { matchBets: maxOdds, sessionBets: minOdds };
-}
-
-function normalizeMatch(m, idx) {
-  const { day, month, time } = parseDateTime(m.commence_time);
-  const { matchBets, sessionBets } = extractBestOdds(m);
-  
-  return {
-    id:          m.id || idx,
-    title:       `${m.home_team} vs ${m.away_team}`,
-    subtitle:    m.sport_title || "Cricket",
-    matchBets:   matchBets,
-    sessionBets: sessionBets,
-    day, month, time,
-    venue:       m.venue || "",
-    status:      "scheduled",
-    score:       null,
-    raw:         m,
-    teams:       [m.home_team, m.away_team],
-  };
-}
-
-// ─── Live (main) ───────────────────────────────────────────────────────────
+// ─── Main Live Component ──────────────────────────────────────────────────
 const Live = () => {
-  const [allMatches, setAll]   = useState([]);
-  const [loading, setLoading]  = useState(false);
-  const [error, setError]      = useState(null);
-  const [lastFetched, setLast] = useState(null);
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastFetched, setLastFetched] = useState(null);
 
-  const fetchMatches = async () => {
+  const fetchSavedMatches = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res  = await fetch(ODDS_URL);
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/api/matches/saved`, {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.message || "Failed to fetch saved matches.");
+      }
+
+      const savedMatches = json.data || json;
+      if (!Array.isArray(savedMatches)) {
+        throw new Error("Unexpected response format.");
+      }
+
+      // Filter: only matches scheduled for today
+      const todayMatches = savedMatches.filter(match => 
+        isToday(match.commenceTime)
+      );
+
+      // Normalize matches for UI
+      const normalizedMatches = todayMatches.map(normalizeSavedMatch);
       
-      if (!Array.isArray(data)) throw new Error("Invalid API response format");
-
-      const todayMatches = [];
-
-      data.forEach((m, idx) => {
-        const dateToUse  = m.commence_time;
-
-        // Show only today's matches
-        if (isToday(dateToUse)) {
-          todayMatches.push(normalizeMatch(m, idx));
-        }
+      // Sort by commenceTime (earliest first)
+      normalizedMatches.sort((a, b) => {
+        const timeA = new Date(a.raw.commenceTime);
+        const timeB = new Date(b.raw.commenceTime);
+        return timeA - timeB;
       });
 
-      setAll(todayMatches);
-      setLast(new Date());
-    } catch (e) {
-      setError(e.message);
+      setMatches(normalizedMatches);
+      setLastFetched(new Date());
+    } catch (err) {
+      console.error("Error fetching saved matches:", err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchMatches();
-    const interval = setInterval(fetchMatches, 60_000);
+    fetchSavedMatches();
+    const interval = setInterval(fetchSavedMatches, 60000); // Refresh every minute
     return () => clearInterval(interval);
   }, []);
 
-  const grouped = groupByDate(allMatches);
+  // Group matches by date (though all are today, group by day-month for consistency)
+  const groupByDate = (matchesList) => {
+    const groups = {};
+    matchesList.forEach((m) => {
+      const key = `${m.day} ${m.month}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(m);
+    });
+    return groups;
+  };
 
+  const grouped = groupByDate(matches);
   const todayLabel = new Date().toLocaleDateString("en-IN", {
-    weekday: "long", day: "numeric", month: "long",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
   });
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "var(--color-bg-main)", fontFamily: "var(--font-nunito)" }}>
-      {/* ── Content ── */}
+    <div style={{ 
+      minHeight: "100vh", 
+      backgroundColor: "var(--color-bg-main)", 
+      fontFamily: "var(--font-nunito)" 
+    }}>
       <div style={{
-        padding: "16px 12px", maxWidth: "640px", margin: "0 auto",
-        display: "flex", flexDirection: "column", gap: "20px",
+        padding: "16px 12px",
+        maxWidth: "640px",
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: "20px",
       }}>
-
-        {/* Header */}
+        {/* Header with last updated time */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: "11px", color: "var(--color-text-dark)", opacity: 0.35, fontFamily: "var(--font-nunito)" }}>
+          <span style={{ 
+            fontSize: "11px", 
+            color: "var(--color-text-dark)", 
+            opacity: 0.35, 
+            fontFamily: "var(--font-nunito)" 
+          }}>
             {lastFetched
-              ? `Updated ${lastFetched.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`
+              ? `Updated ${lastFetched.toLocaleTimeString("en-IN", { 
+                  hour: "2-digit", 
+                  minute: "2-digit" 
+                })}`
               : "Fetching..."}
           </span>
         </div>
 
         {/* Loading skeleton */}
-        {loading && !Object.keys(allMatches).length && (
-          [1, 2, 3].map(i => (
-            <div key={i} style={{
-              height: "160px", borderRadius: "16px",
-              backgroundColor: "var(--color-input-bg)",
-              border: "1.5px solid var(--color-border)",
-              animation: "pulse 1.5s ease-in-out infinite",
-              opacity: 1 - i * 0.2,
-            }} />
-          ))
+        {loading && !matches.length && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {[1, 2, 3].map((i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
         )}
 
         {/* Error state */}
-        {error && (
+        {!loading && error && (
           <div style={{
-            padding: "16px", borderRadius: "12px",
-            backgroundColor: "#fef2f2", border: "1px solid #fecaca",
-            fontSize: "13px", color: "#dc2626", fontFamily: "var(--font-nunito)",
+            padding: "16px",
+            borderRadius: "12px",
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fecaca",
+            fontSize: "13px",
+            color: "#dc2626",
+            fontFamily: "var(--font-nunito)",
           }}>
-            <strong>API error:</strong> {error}
+            <strong>Error:</strong> {error}
             <br />
             <span style={{ fontSize: "11px", opacity: 0.7 }}>
-              Make sure your ODDS_API_KEY is valid. Please check the API configuration.
+              Make sure your backend server is running at {API_BASE}
             </span>
           </div>
         )}
 
-        {/* Empty state */}
-        {!loading && !error && allMatches.length === 0 && (
+        {/* Empty state - no matches today */}
+        {!loading && !error && matches.length === 0 && (
           <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center",
-            justifyContent: "center", padding: "64px 24px", gap: "12px", textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "64px 24px",
+            gap: "12px",
+            textAlign: "center",
           }}>
             <div style={{
-              width: "60px", height: "60px", borderRadius: "50%",
-              backgroundColor: "var(--color-input-bg)", border: "1px solid var(--color-border)",
-              display: "flex", alignItems: "center", justifyContent: "center",
+              width: "60px",
+              height: "60px",
+              borderRadius: "50%",
+              backgroundColor: "var(--color-input-bg)",
+              border: "1px solid var(--color-border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}>
               <IoTrophyOutline size={26} style={{ color: "var(--color-accent)", opacity: 0.5 }} />
             </div>
-            <p style={{ margin: 0, fontFamily: "var(--font-rajdhani)", fontWeight: "700", fontSize: "15px", letterSpacing: "0.3px", color: "var(--color-text-dark)", opacity: 0.4 }}>
-              No matches today
+            <p style={{ 
+              margin: 0, 
+              fontFamily: "var(--font-rajdhani)", 
+              fontWeight: "700", 
+              fontSize: "15px", 
+              letterSpacing: "0.3px", 
+              color: "var(--color-text-dark)", 
+              opacity: 0.4 
+            }}>
+              No saved matches for today
             </p>
-            <p style={{ margin: 0, fontSize: "12px", color: "var(--color-text-dark)", opacity: 0.3 }}>
+            <p style={{ 
+              margin: 0, 
+              fontSize: "12px", 
+              color: "var(--color-text-dark)", 
+              opacity: 0.3 
+            }}>
               {todayLabel}
             </p>
           </div>
         )}
 
         {/* Match groups */}
-        {!error && Object.entries(grouped).map(([dateLabel, groupMatches]) => (
+        {!loading && !error && Object.entries(grouped).map(([dateLabel, groupMatches]) => (
           <div key={dateLabel} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <span style={{
-                fontFamily: "var(--font-rajdhani)", fontWeight: "700",
-                fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase",
+                fontFamily: "var(--font-rajdhani)",
+                fontWeight: "700",
+                fontSize: "11px",
+                letterSpacing: "1px",
+                textTransform: "uppercase",
                 color: "var(--color-primary)",
                 whiteSpace: "nowrap",
               }}>
@@ -576,15 +557,22 @@ const Live = () => {
               </span>
               <span style={{ flex: 1, height: "1px", backgroundColor: "var(--color-border)" }} />
             </div>
-            {groupMatches.map((match) => <IPLMatchCard key={match.id} match={match} />)}
+            {groupMatches.map((match) => (
+              <IPLMatchCard key={match.id} match={match} />
+            ))}
           </div>
         ))}
       </div>
 
       <style>{`
-        @keyframes spin    { to { transform: rotate(360deg); } }
-        @keyframes pulse   { 0%,100% { opacity:0.6; } 50% { opacity:0.3; } }
-        @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 0.3; }
+        }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
       `}</style>
     </div>
   );

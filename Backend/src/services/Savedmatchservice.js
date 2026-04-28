@@ -6,8 +6,13 @@ const SavedMatch = require("../models/Savedmatch");
  * - Uses the compound unique index to prevent duplicates (catches error code 11000).
  */
 const saveMatch = async (userId, matchData) => {
-  const { matchId, homeTeam, awayTeam, commenceTime, sportKey, odds } =
-    matchData;
+  const { matchId, homeTeam, awayTeam, commenceTime, sportKey, odds } = matchData;
+
+  if (!matchId || !homeTeam || !awayTeam) {
+    const err = new Error("matchId, homeTeam, and awayTeam are required.");
+    err.statusCode = 400;
+    throw err;
+  }
 
   // Prevent saving past matches
   if (commenceTime && new Date(commenceTime) < new Date()) {
@@ -39,24 +44,22 @@ const saveMatch = async (userId, matchData) => {
 };
 
 /**
- * Get all saved matches for a user, newest first.
- * Uses lean() for plain JS objects — faster reads, no Mongoose overhead.
+ * Get ALL saved matches (public — no userId filter).
+ * Route: GET /api/matches/saved
+ * Sorted newest first, returns plain JS objects via lean().
  */
-const getSavedMatches = async (userId) => {
-  return SavedMatch.find({ user: userId })
+const getSavedMatches = async () => {
+  return SavedMatch.find()
     .sort({ createdAt: -1 })
     .lean();
 };
 
 /**
- * Delete a saved match for a user by matchId.
+ * Delete a saved match by matchId only (superadmin can delete any match).
  * Returns the deleted document so the caller can confirm.
  */
 const deleteSavedMatch = async (userId, matchId) => {
-  const deleted = await SavedMatch.findOneAndDelete({
-    user: userId,
-    matchId,
-  }).lean();
+  const deleted = await SavedMatch.findOneAndDelete({ matchId }).lean();
 
   if (!deleted) {
     const err = new Error("Saved match not found.");
