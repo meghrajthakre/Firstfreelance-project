@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";   // <-- added for navigation
 import { MdAccessTime } from "react-icons/md";
 import { IoTrophyOutline } from "react-icons/io5";
 import { getSavedMatches } from "../../api/userService";
@@ -184,23 +185,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// ─── SavedBadge ───────────────────────────────────────────────────────────
-const SavedBadge = () => (
-  <span style={{
-    display: "inline-flex", alignItems: "center", gap: "4px",
-    fontSize: "10px", fontWeight: "700", letterSpacing: "0.5px",
-    padding: "2px 8px", borderRadius: "20px",
-    color: "#059669", backgroundColor: "#ecfdf5",
-    border: "1px solid #6ee7b7",
-    fontFamily: "var(--font-rajdhani)", flexShrink: 0,
-  }}>
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="1,6 4.5,9.5 11,2.5"/>
-    </svg>
-    ADDED
-  </span>
-);
-
 // ─── BetPill ──────────────────────────────────────────────────────────────
 const BetPill = ({ label, value }) => (
   <div style={{
@@ -220,13 +204,19 @@ const BetPill = ({ label, value }) => (
 
 // ─── IPLMatchCard ─────────────────────────────────────────────────────────
 const IPLMatchCard = ({ match }) => {
+  const navigate = useNavigate();
   const [hovered, setHovered] = useState(false);
   const teamA = match.teams?.[0] || "TBA";
   const teamB = match.teams?.[1] || "TBA";
   const isLive = match.status === "live";
 
+  const handleClick = () => {
+    navigate(`/match/${match.id}`);   // navigate to detail page
+  };
+
   return (
     <div
+      onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -260,7 +250,7 @@ const IPLMatchCard = ({ match }) => {
       )}
 
       <div style={{ padding: "14px 16px" }}>
-        {/* Header: subtitle + badges */}
+        {/* Header: subtitle + badges (SavedBadge removed) */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
           <span style={{
             fontSize: "11px", fontWeight: "600", opacity: 0.45,
@@ -269,7 +259,6 @@ const IPLMatchCard = ({ match }) => {
             {match.subtitle}
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <SavedBadge />
             <StatusBadge status={match.status} />
             <div style={{
               display: "flex", alignItems: "center", gap: "4px",
@@ -369,7 +358,6 @@ const Live = () => {
     setError(null);
     try {
       const response = await getSavedMatches();
-      // response is already the parsed data from API interceptor
       const savedMatches = response.data || response;
 
       if (!Array.isArray(savedMatches)) {

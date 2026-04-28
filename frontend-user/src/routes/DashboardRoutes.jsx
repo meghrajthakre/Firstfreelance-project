@@ -7,6 +7,7 @@ import Settings from '../pages/dashboard/Settings'
 import Ledger from '../pages/dashboard/Ledger'
 import DashboardHome from '../pages/dashboard/DashboardHome'
 import Password from '../pages/dashboard/Password'
+import MatchDetail from '../pages/dashboard/MatchDetail'
 
 const DashboardRoutes = () => {
 
@@ -20,7 +21,7 @@ const DashboardRoutes = () => {
             <Route path="dashboard/settings" element={<Settings />} />
             <Route path="dashboard/ledger" element={<Ledger />} />
             <Route path="dashboard/password" element={<Password />} />
-            
+             <Route path="/match/:matchId" element={<MatchDetail />} />
 
         </>
 
