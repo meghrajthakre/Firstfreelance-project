@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API_BASE = "https://firstfreelance-project.onrender.com";
+const API_BASE ="http://localhost:5000"; 
 const STORAGE_KEY = "savedMatchIds";
 
 // ─── LocalStorage helpers ─────────────────────────────────────────────────
@@ -65,31 +65,12 @@ export default function InPlayMatchesPage() {
         }));
 
         setMatches(normalised);
-
-        // ── Optionally sync saved state from the server ──────────────────
-        // Merges server-saved IDs with localStorage so neither source is lost.
-        try {
-          const savedRes = await fetch(`${API_BASE}/api/matches/saved`, {
-            credentials: "include",
-          });
-          if (savedRes.ok) {
-            const savedJson = await savedRes.json();
-            const list = savedJson.data ?? savedJson;
-            if (Array.isArray(list) && list.length > 0) {
-              const serverIds = new Set(list.map((m) => m.matchId ?? m.id));
-              // Merge: keep localStorage IDs + add any new ones from server
-              setSavedIds((prev) => new Set([...prev, ...serverIds]));
-            }
-            // If server returns empty array, keep localStorage state as-is
-          }
-        } catch {
-          // Silently fall back to localStorage — no server /saved endpoint needed
-        }
       } catch (err) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
+      
     };
 
     fetchMatches();
