@@ -1,8 +1,9 @@
 "use strict";
 
 const { User, ROLES } = require("../models/User");
-const asyncHandler    = require("../utils/asyncHandler");
-const AppError        = require("../utils/AppError");
+const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/AppError");
+const { updateUserCoins } = require("../modules/ledger/ledger.service");
 
 /* ─────────────────────────────────────────────────────────────
    CREATE USER   POST /superadmin/users
@@ -27,24 +28,29 @@ const createUser = asyncHandler(async (req, res) => {
 
   // ── Generate unique username ────────────────────────────────
   const generateUsername = () => {
-  const randomDigits = Math.floor(10000 + Math.random() * 90000); // 5-digit random
-  return `sm${randomDigits}`;
-};
+    const randomDigits = Math.floor(10000 + Math.random() * 90000); // 5-digit random
+    return `sm${randomDigits}`;
+  };
 
-let username = generateUsername();
-while (await User.findOne({ username })) {
-  username = generateUsername();
-}
+  let username = generateUsername();
+  while (await User.findOne({ username })) {
+    username = generateUsername();
+  }
   // ── Create ────────────────────────────────────────────────
   const user = await User.create({
     username,  // Add generated username
     firstName: firstName.trim(),
     password,
-    role:      ROLES.USER,
-    coins:     c,
+    role: ROLES.USER,
+    coins: 0, // Start with 0, credit via ledger
     createdBy: req.user._id,
-    parentId:  req.user._id,
+    parentId: req.user._id,
   });
+
+  // Credit initial coins via ledger if provided
+  if (c > 0) {
+    await updateUserCoins(user._id, c, "credit", "Initial balance", req.user._id);
+  }
 
   const data = user.toObject();
   delete data.password;
@@ -61,13 +67,13 @@ while (await User.findOne({ username })) {
    Query: page, limit, search
 ───────────────────────────────────────────────────────────── */
 const getUsers = asyncHandler(async (req, res) => {
-  const page   = parseInt(req.query.page)  || 1;
-  const limit  = parseInt(req.query.limit) || 10;
-  const search = req.query.search          || "";
-  const skip   = (page - 1) * limit;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const search = req.query.search || "";
+  const skip = (page - 1) * limit;
 
   const filter = {
-    role:      ROLES.USER,
+    role: ROLES.USER,
     createdBy: req.user._id,
   };
 
@@ -140,6 +146,24 @@ const updateUser = asyncHandler(async (req, res) => {
     updates.coins = c;
   }
 
+  // Handle coins update via ledger
+  let coinsUpdate = null;
+  if (updates.coins !== undefined) {
+    const currentUser = await User.findById(req.params.id);
+    if (!currentUser) throw new AppError("User not found.", 404);
+
+    const currentCoins = currentUser.coins;
+    const newCoins = updates.coins;
+    const difference = newCoins - currentCoins;
+
+    if (difference > 0) {
+      coinsUpdate = { type: "credit", amount: difference };
+    } else if (difference < 0) {
+      coinsUpdate = { type: "debit", amount: Math.abs(difference) };
+    }
+    // If difference === 0, no ledger update needed
+  }
+
   const user = await User.findOneAndUpdate(
     { _id: req.params.id, role: ROLES.USER, createdBy: req.user._id },
     updates,
@@ -147,6 +171,17 @@ const updateUser = asyncHandler(async (req, res) => {
   ).select("-password");
 
   if (!user) throw new AppError("User not found.", 404);
+
+  // Apply ledger transaction if coins changed
+  if (coinsUpdate) {
+    await updateUserCoins(
+      user._id,
+      coinsUpdate.amount,
+      coinsUpdate.type,
+      `Admin updated balance`,
+      req.user._id
+    );
+  }
 
   res.status(200).json({ success: true, message: "User updated.", data: user });
 });
@@ -167,7 +202,7 @@ const toggleUserStatus = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: `User ${user.isActive ? "activated" : "deactivated"}.`,
-    data:    { isActive: user.isActive },
+    data: { isActive: user.isActive },
   });
 });
 

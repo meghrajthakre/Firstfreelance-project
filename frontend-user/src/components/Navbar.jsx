@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { useCoinStore } from "../store/coinStore";
-import { logoutUser } from "../api/userService";
+import { logoutUser , getWalletBalance} from "../api/userService";
 
 const NAV_ITEMS = [
   {
@@ -116,6 +116,22 @@ const Navbar = () => {
   const username = user?.username ?? "Guest";
   const firstName = user?.firstName ?? "";
 
+  // Fetch wallet balance from API on mount and when user changes
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const fetchBalance = async () => {
+      try {
+        const res = await getWalletBalance(user._id);
+        setCoins(res.data.data.balance);
+      } catch {
+        // silently fail — coins will stay as whatever is in the store
+      }
+    };
+
+    fetchBalance();
+  }, [user?._id]);
+
   const getActiveKey = () => {
     const path = location.pathname;
     if (path === "/dashboard") return "dashboard";
@@ -176,7 +192,6 @@ const Navbar = () => {
             <div className="flex items-center gap-1.5 min-w-0">
               <span
                 className="
-                
                     text-[14px] sm:text-semibold
                     text-(--color-text-muted)
                  max-w-[80px] sm:max-w-[130px]
@@ -197,7 +212,6 @@ const Navbar = () => {
                 text-(--color-text-muted)
                  max-w-[80px] sm:max-w-[130px]
                  tracking-wide
-
                   "
                   >
                     {firstName}

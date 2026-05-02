@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { updateUser } from "../../services/userService";
+import { creditWallet, debitWallet } from "../../services/walletService.js";
 
-export default function EditCoinsModal({ isOpen, user, onClose, onSuccess,showToast }) {
+export default function EditCoinsModal({ isOpen, user, onClose, onSuccess, showToast }) {
   const [coins, setCoins] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -16,28 +16,46 @@ export default function EditCoinsModal({ isOpen, user, onClose, onSuccess,showTo
   if (!isOpen || !user) return null;
 
   const handleSubmit = async () => {
-    const value = Number(coins);
-    if (isNaN(value) || value < 0) {
+    const newValue = Number(coins);
+
+    if (isNaN(newValue) || newValue < 0) {
       setError("Please enter a valid non-negative number.");
+      return;
+    }
+
+    const currentCoins = user.coins ?? 0;
+    const diff = parseFloat((newValue - currentCoins).toFixed(2));
+
+    if (diff === 0) {
+      setError("New value is the same as the current balance.");
       return;
     }
 
     setLoading(true);
     setError("");
+
     try {
-      await updateUser(user._id, { coins: value });
-      onSuccess(user._id, value);
+      if (diff > 0) {
+        await creditWallet(user._id, diff);
+      } else {
+        await debitWallet(user._id, Math.abs(diff));
+      }
+
+      onSuccess(user._id, newValue);
+      showToast(`Coins updated successfully for ${user.firstName}!`);
       onClose();
-      showToast(`Coins updated successfully for ${user.firstName}!`); // ✅ success toast
     } catch (err) {
-      const msg = err?.response?.data?.message || "Failed to update coins.";
+      const msg = err?.response?.data?.error || "Failed to update coins.";
       setError(msg);
-      showToast(msg, true); // ✅ error toast too
+      showToast(msg, true);
     } finally {
       setLoading(false);
     }
   };
-  
+
+  const currentCoins = user.coins ?? 0;
+  const diff = parseFloat((Number(coins) - currentCoins).toFixed(2));
+  const hasDiff = !isNaN(diff) && diff !== 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -62,10 +80,10 @@ export default function EditCoinsModal({ isOpen, user, onClose, onSuccess,showTo
         {/* Current balance */}
         <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
           <span className="text-xs text-amber-600 font-medium">Current Balance</span>
-          <span className="text-sm font-bold text-amber-700"> {user.coins ?? 0}</span>
+          <span className="text-sm font-bold text-amber-700">{currentCoins}</span>
         </div>
 
-        {/* Input */}
+        {/* New value input */}
         <div className="mb-4">
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
             New Coin Value
@@ -78,10 +96,17 @@ export default function EditCoinsModal({ isOpen, user, onClose, onSuccess,showTo
             className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition"
             placeholder="Enter coins amount"
           />
-          {error && (
-            <p className="text-xs text-red-500 mt-1.5">{error}</p>
+
+          {/* Live diff badge — shows credit/debit amount before saving */}
+          {hasDiff && (
+            <p className={`text-xs mt-1.5 font-medium ${diff > 0 ? "text-green-600" : "text-red-500"}`}>
+              {diff > 0 ? `+${diff}` : diff} coins will be {diff > 0 ? "credited" : "debited"}
+            </p>
           )}
         </div>
+
+        {/* Inline error message */}
+        {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
 
         {/* Actions */}
         <div className="flex gap-2">

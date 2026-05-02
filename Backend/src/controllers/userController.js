@@ -1,7 +1,7 @@
 "use strict";
 
 const { User } = require("../models/User");
-const { Ledger } = require("../models/Ledger");
+const { Ledger } = require("../modules/ledger/ledger.model");
 const asyncHandler = require("../utils/asyncHandler");
 const { ok, paginationMeta } = require("../utils/apiResponse");
 const AppError = require("../utils/AppError");

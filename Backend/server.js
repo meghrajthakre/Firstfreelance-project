@@ -12,13 +12,14 @@ const { notFound, errorHandler } = require("./src/middleware/errorMiddleware");
 // ── Route imports ─────────────────────────────────────────────────────────────
 const authRoutes = require("./src/routes/authRoutes");
 const superAdminRoutes = require("./src/routes/superAdminRoutes");
-const adminRoutes = require("./src/routes/adminRoutes");
-const masterRoutes = require("./src/routes/masterRoutes");
 const superUserRoutes = require("./src/routes/superadminUserRoutes");
 const bannerRoutes = require("./src/routes/bannerRoutes");
 const superRoutes = require("./src/routes/superRoutes");
 const { saveMatch } = require("./src/services/Savedmatchservice");
 const savedMatchRoutes = require("./src/routes/SavedMatchRoutes");
+const ledgerRoutes = require("./src/modules/ledger/ledger.routes");
+const betRoutes = require("./src/modules/bet/bet.routes");
+const walletRoutes = require("./src/modules/wallet/wallet.routes");
 
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
@@ -31,7 +32,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-    "https://firstfreelance-project.vercel.app",
+  "https://firstfreelance-project.vercel.app",
   "https://superadmin-phi-eight.vercel.app",
   "firstfreelance-project-jsft8o6fm-meghrajthakres-projects.vercel.app",
   "https://superadmin-oy4sv2xkd-meghrajthakres-projects.vercel.app",
@@ -145,11 +146,12 @@ app.get("/sse/:matchId", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/superadmin/users", superUserRoutes);
-app.use("/api/master", masterRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api/banner", bannerRoutes);
 app.use("/api/superadmin", superRoutes);
 app.use("/api/matches", savedMatchRoutes);
+app.use("/api/wallet", walletRoutes);
+app.use("/api/ledger", ledgerRoutes);
+app.use("/api/bet", betRoutes);
 
 // ── 404 + global error handler (must be last) ─────────────────────────────────
 app.use(notFound);

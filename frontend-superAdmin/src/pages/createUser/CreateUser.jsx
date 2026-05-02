@@ -38,25 +38,32 @@ export default function CreateUser({ onGoBack }) {
     setError("");
     
     try {
-      // Import your createUser service function here
       const { createUser } = await import("../../services/userService");
-      await createUser({
+      const { creditWallet } = await import("../../services/walletService");
+
+      // Step 1 — create the user
+      const res = await createUser({
         firstName: form.firstName.trim(),
         password: form.password,
         confirmPassword: form.confirmPassword,
-        coins: Number(form.coins),
+        coins: 0, // always create with 0, wallet will credit below
       });
+
+      // Step 2 — credit coins via wallet if coins > 0
+      const coins = Number(form.coins);
+      if (coins > 0) {
+        await creditWallet(res.data._id, coins);
+      }
+
       setSuccess(true);
       setForm({ firstName: "", password: "", confirmPassword: "", coins: "" });
       
-      // Auto redirect after 2 seconds
+      // Auto redirect after 1.5 seconds
       setTimeout(() => {
-        if (onGoBack) {
-          onGoBack();
-        }
+        if (onGoBack) onGoBack();
       }, 1500);
     } catch (e) {
-      setError(e?.response?.data?.message || "Something went wrong.");
+      setError(e?.response?.data?.message || e?.response?.data?.error || "Something went wrong.");
     } finally { 
       setLoading(false); 
     }
