@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { useAuthStore } from "../../../store/authStore"; // ← adjust path to your store
+import { useAuthStore } from "../../../store/authStore";
 
 /* ─── palette ─── */
 const C = {
@@ -35,6 +35,8 @@ const normalizeType = (type) => {
   return type;
 };
 
+// For BACK/YES (Lagai): Profit = (rate × stake) / 100 | Loss = stake
+// For LAY/NO  (Khai):   Profit = stake               | Loss = (rate × stake) / 100
 const calculateProfit = (type, rate, stake) => {
   const t = normalizeType(type);
   const r = parseFloat(rate) || 0;
@@ -58,8 +60,10 @@ const calculateExposure = (bets) =>
     .filter((b) => b.status === "OPEN" || b.status === "MATCHED")
     .reduce((sum, b) => sum + b.liability, 0);
 
-const calcRunnerPnl = (bets, runner) => {
-  let pnl = 0;
+// Returns { profit, loss } for a runner — used for split +/- display in market table
+const calcRunnerPnlSplit = (bets, runner) => {
+  let profit = 0;
+  let loss = 0;
   bets
     .filter(
       (b) =>
@@ -68,10 +72,53 @@ const calcRunnerPnl = (bets, runner) => {
     )
     .forEach((b) => {
       const t = normalizeType(b.type);
-      if (t === "yes") pnl += b.profit;
-      if (t === "no") pnl -= b.liability;
+      if (t === "yes") {
+        // Back bet: if runner wins → earn profit; if runner loses → lose liability
+        profit += b.profit;
+        loss += b.liability;
+      }
+      if (t === "no") {
+        // Lay bet: if runner loses → earn liability as profit; if runner wins → lose profit amount
+        profit += b.liability;
+        loss += b.profit;
+      }
     });
-  return parseFloat(pnl.toFixed(2));
+  return {
+    profit: parseFloat(profit.toFixed(2)),
+    loss: parseFloat(loss.toFixed(2)),
+  };
+};
+
+// Net PnL for a runner (used for simple single-value display where needed)
+const calcRunnerPnl = (bets, runner) => {
+  const { profit, loss } = calcRunnerPnlSplit(bets, runner);
+  return parseFloat((profit - loss).toFixed(2));
+};
+
+const calcSessionPnlSplit = (bets, name) => {
+  let profit = 0;
+  let loss = 0;
+  bets
+    .filter(
+      (b) =>
+        b.runner === name &&
+        (b.status === "OPEN" || b.status === "MATCHED")
+    )
+    .forEach((b) => {
+      const t = normalizeType(b.type);
+      if (t === "yes") {
+        profit += b.profit;
+        loss += b.liability;
+      }
+      if (t === "no") {
+        profit += b.liability;
+        loss += b.profit;
+      }
+    });
+  return {
+    profit: parseFloat(profit.toFixed(2)),
+    loss: parseFloat(loss.toFixed(2)),
+  };
 };
 
 /* ─── API ─── */
@@ -170,11 +217,8 @@ const OddsBtn = ({ color, label, flash, onClick }) => (
 const MatchDetail = () => {
   const { matchId } = useParams();
 
-  // ─── Auth: get logged-in user from Zustand store ───────────────
   const user = useAuthStore((state) => state.user);
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
-  // user._id is the MongoDB ObjectId string sent back at login
-  // ──────────────────────────────────────────────────────────────
 
   const mockMatch = {
     id: matchId,
@@ -202,7 +246,7 @@ const MatchDetail = () => {
   const [sessions, setSessions] = useState(mockMatch.sessionMarkets);
   const [flashMap, setFlashMap] = useState({});
   const [betSlip, setBetSlip] = useState(null);
-  const [stake, setStake] = useState("500");
+  const [stake, setStake] = useState("0");       // ← default 0
   const [confirmed, setConfirmed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [bets, setBets] = useState([]);
@@ -238,18 +282,18 @@ const MatchDetail = () => {
     return () => clearInterval(id);
   }, []);
 
+  /* ── openBet: stake always starts at 0 ── */
   const openBet = (runner, type, odds, isSession = false) => {
-    // Guard: user must be logged in to open a bet slip
     if (!isLoggedIn || !user?._id) {
       alert("Please log in to place a bet.");
       return;
     }
     setConfirmed(false);
-    setStake("500");
+    setStake("0");           // ← was "500", now "0"
     setBetSlip({ runner, type, odds, isSession });
   };
 
-  /* Derived slip values */
+  /* Derived slip values — all 0 when stake is 0 */
   const stakeNum = parseFloat(stake) || 0;
   const slipProfit = betSlip
     ? calculateProfit(betSlip.type, betSlip.odds, stakeNum)
@@ -268,9 +312,6 @@ const MatchDetail = () => {
       alert(`Exposure limit ₹${EXPOSURE_LIMIT.toLocaleString()} exceeded!`);
       return;
     }
-
-    // Safety check — should never hit this because openBet guards it,
-    // but defensive programming is good practice
     if (!user?._id) {
       alert("Session expired. Please log in again.");
       return;
@@ -279,7 +320,7 @@ const MatchDetail = () => {
     const betType = normalizeType(betSlip.type);
 
     const payload = {
-      userId: user._id,           // ← from Zustand auth store (MongoDB _id)
+      userId: user._id,
       matchId: matchId,
       amount: stakeNum,
       rate: parseFloat(betSlip.odds),
@@ -315,25 +356,14 @@ const MatchDetail = () => {
     }
   };
 
-  /* PnL helpers */
-  const runnerPnl = (runner) => calcRunnerPnl(bets, runner);
-
-  const sessionPnl = (name) =>
-    bets
-      .filter(
-        (b) =>
-          b.runner === name &&
-          (b.status === "OPEN" || b.status === "MATCHED")
-      )
-      .reduce((sum, b) => {
-        const t = normalizeType(b.type);
-        return sum + (t === "yes" ? b.profit : -b.liability);
-      }, 0);
-
+  /* ── Market rows definition ── */
   const marketRows = [
     { short: "Bangladesh W", full: teamA, hl: false, lagaiO: "48", khaiO: "50" },
-    { short: "Sri Lanka W", full: teamB, hl: true, lagaiO: "48", khaiO: "50" },
+    { short: "Sri Lanka W",  full: teamB, hl: true,  lagaiO: "48", khaiO: "50" },
   ];
+
+  // Determine favourite: team with the lowest lagaiO (back) odds
+  const minLagaiOdds = Math.min(...marketRows.map((r) => parseFloat(r.lagaiO)));
 
   return (
     <div
@@ -392,38 +422,18 @@ const MatchDetail = () => {
                   marginBottom: 5,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: C.textDark,
-                  }}
-                >
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.textDark }}>
                   {teamA}
                 </span>
                 <span style={{ fontSize: 13, color: "#5a7a99" }}>
                   {mockMatch.homeScore} ({mockMatch.homeOvers})
                 </span>
               </div>
-              <div
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: C.textDark,
-                  }}
-                >
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.textDark }}>
                   {teamB}
                 </span>
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: C.pnlGreen,
-                  }}
-                >
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.pnlGreen }}>
                   {mockMatch.awayScore} ({mockMatch.awayOvers})
                 </span>
               </div>
@@ -508,16 +518,14 @@ const MatchDetail = () => {
               Market (Min: {mockMatch.marketMinMax.min.toLocaleString()}, Max:{" "}
               {mockMatch.marketMinMax.max.toLocaleString()})
             </span>
-            <span
-              style={{ fontSize: 13, fontWeight: 700, color: "#4cef9a" }}
-            >
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#4cef9a" }}>
               {bets.filter((b) => !b.isSession).length || 0}
             </span>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={tblHdr}>
-                <TH left w="40%">RUNNER</TH>
+                <TH left w="38%">RUNNER</TH>
                 <TH>LAGAI</TH>
                 <TH>KHAI</TH>
                 <TH>+/-</TH>
@@ -525,43 +533,103 @@ const MatchDetail = () => {
             </thead>
             <tbody>
               {marketRows.map((row, i) => {
-                const pnl = runnerPnl(row.full);
+                const { profit, loss } = calcRunnerPnlSplit(bets, row.full);
+                const hasActivity = profit > 0 || loss > 0;
+                const isFavourite =
+                  parseFloat(row.lagaiO) === minLagaiOdds;
+
                 return (
                   <tr
                     key={i}
                     style={{
                       backgroundColor: row.hl ? C.hlRow : "transparent",
+                      // Dim non-favourite row slightly
+                      opacity: !isFavourite ? 0.62 : 1,
                     }}
                   >
+                    {/* Runner name + FAV badge */}
                     <TD
                       left
                       bold
-                      style={{
-                        color: row.hl ? C.primary : C.textDark,
-                      }}
+                      style={{ color: row.hl ? C.primary : C.textDark }}
                     >
-                      {row.short}
+                      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        {row.short}
+                        {isFavourite && (
+                          <span
+                            style={{
+                              fontSize: 9,
+                              background: C.yesBg,
+                              color: "#fff",
+                              borderRadius: 3,
+                              padding: "1px 5px",
+                              fontFamily: "var(--font-rajdhani)",
+                              letterSpacing: 0.3,
+                              fontWeight: 700,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            FAV
+                          </span>
+                        )}
+                      </span>
                     </TD>
+
+                    {/* Lagai button — use full colour for favourite, muted for other */}
                     <TD>
                       <OddsBtn
-                        color={C.lagai}
+                        color={isFavourite ? C.lagai : C.accent}
                         label={row.lagaiO}
                         onClick={() =>
                           openBet(row.full, "Lagai", row.lagaiO, false)
                         }
                       />
                     </TD>
+
+                    {/* Khai button */}
                     <TD>
                       <OddsBtn
-                        color={C.khai}
+                        color={isFavourite ? C.khai : "#9a607a"}
                         label={row.khaiO}
                         onClick={() =>
                           openBet(row.full, "Khai", row.khaiO, false)
                         }
                       />
                     </TD>
-                    <TD green={pnl > 0} red={pnl < 0}>
-                      {pnl !== 0 ? (pnl > 0 ? `+${pnl}` : pnl) : 0}
+
+                    {/* +/- column: show profit in green AND loss in red */}
+                    <TD>
+                      {!hasActivity ? (
+                        <span style={{ color: "#aaa" }}>0</span>
+                      ) : (
+                        <span
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: C.pnlGreen,
+                              fontWeight: 700,
+                              fontSize: 11,
+                            }}
+                          >
+                            +{profit}
+                          </span>
+                          <span
+                            style={{
+                              color: "#e05560",
+                              fontWeight: 700,
+                              fontSize: 11,
+                            }}
+                          >
+                            -{loss}
+                          </span>
+                        </span>
+                      )}
                     </TD>
                   </tr>
                 );
@@ -584,9 +652,7 @@ const MatchDetail = () => {
             >
               SESSION (Min: 100, Max: 1,00,000)
             </span>
-            <span
-              style={{ fontSize: 13, fontWeight: 700, color: "#4cef9a" }}
-            >
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#4cef9a" }}>
               {bets.filter((b) => b.isSession).length || 0}
             </span>
           </div>
@@ -598,12 +664,12 @@ const MatchDetail = () => {
             }}
           >
             <colgroup>
-              <col style={{ width: "30%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "20%" }} />
+              <col style={{ width: "28%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "13%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "26%" }} />
             </colgroup>
             <thead>
               <tr style={tblHdr}>
@@ -617,18 +683,17 @@ const MatchDetail = () => {
             </thead>
             <tbody>
               {sessions.map((s, idx) => {
-                const pnl = sessionPnl(s.name);
+                const { profit, loss } = calcSessionPnlSplit(bets, s.name);
+                const hasActivity = profit > 0 || loss > 0;
+
                 return (
                   <tr
                     key={idx}
                     style={{
-                      backgroundColor:
-                        idx % 2 === 0 ? "#f4f8fd" : C.inputBg,
+                      backgroundColor: idx % 2 === 0 ? "#f4f8fd" : C.inputBg,
                     }}
                   >
-                    <TD left small>
-                      {s.name}
-                    </TD>
+                    <TD left small>{s.name}</TD>
                     <TD>
                       <OddsBtn
                         color={C.noBg}
@@ -659,12 +724,40 @@ const MatchDetail = () => {
                         {s.yesRate}
                       </span>
                     </TD>
-                    <TD green={pnl > 0} red={pnl < 0}>
-                      {pnl !== 0
-                        ? pnl > 0
-                          ? `+${pnl.toFixed(2)}`
-                          : pnl.toFixed(2)
-                        : 0}
+
+                    {/* Session +/- column: profit green / loss red */}
+                    <TD>
+                      {!hasActivity ? (
+                        <span style={{ color: "#aaa" }}>0</span>
+                      ) : (
+                        <span
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <span
+                            style={{
+                              color: C.pnlGreen,
+                              fontWeight: 700,
+                              fontSize: 11,
+                            }}
+                          >
+                            +{profit.toFixed(2)}
+                          </span>
+                          <span
+                            style={{
+                              color: "#e05560",
+                              fontWeight: 700,
+                              fontSize: 11,
+                            }}
+                          >
+                            -{loss.toFixed(2)}
+                          </span>
+                        </span>
+                      )}
                     </TD>
                   </tr>
                 );
@@ -704,18 +797,14 @@ const MatchDetail = () => {
                   <OddsBtn
                     color={C.lagai}
                     label="90"
-                    onClick={() =>
-                      openBet("Match Tie", "Lagai", "90", false)
-                    }
+                    onClick={() => openBet("Match Tie", "Lagai", "90", false)}
                   />
                 </TD>
                 <TD>
                   <OddsBtn
                     color={C.khai}
                     label="100"
-                    onClick={() =>
-                      openBet("Match Tie", "Khai", "100", false)
-                    }
+                    onClick={() => openBet("Match Tie", "Khai", "100", false)}
                   />
                 </TD>
               </tr>
@@ -767,9 +856,7 @@ const MatchDetail = () => {
                 <tbody>
                   {bets.map((b) => (
                     <tr key={b.id} style={{ backgroundColor: C.inputBg }}>
-                      <TD left small>
-                        {b.runner}
-                      </TD>
+                      <TD left small>{b.runner}</TD>
                       <TD>
                         <span
                           style={{
@@ -790,12 +877,8 @@ const MatchDetail = () => {
                       </TD>
                       <TD small>{b.odds}</TD>
                       <TD small>₹{b.stake}</TD>
-                      <TD green small>
-                        +₹{b.profit}
-                      </TD>
-                      <TD red small>
-                        ₹{b.liability}
-                      </TD>
+                      <TD green small>+₹{b.profit}</TD>
+                      <TD red small>₹{b.liability}</TD>
                     </tr>
                   ))}
                 </tbody>
@@ -909,6 +992,7 @@ const MatchDetail = () => {
                 </button>
               </div>
 
+              {/* Stake input */}
               <input
                 type="number"
                 value={stake}
@@ -929,9 +1013,8 @@ const MatchDetail = () => {
                 }}
               />
 
-              <div
-                style={{ display: "flex", gap: 6, marginBottom: 12 }}
-              >
+              {/* Quick-add buttons */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
                 {[100, 500, 1000, 5000].map((v) => (
                   <button
                     key={v}
@@ -975,7 +1058,7 @@ const MatchDetail = () => {
                 </div>
               )}
 
-              {/* Stats */}
+              {/* Stats: Stake / Liability / Profit — all 0 on open, live update on type */}
               <div
                 style={{
                   display: "grid",
@@ -985,17 +1068,9 @@ const MatchDetail = () => {
                 }}
               >
                 {[
-                  { label: "Stake", val: `₹${stakeNum}`, color: "#fff" },
-                  {
-                    label: "Liability",
-                    val: `₹${slipLiability}`,
-                    color: "#e05560",
-                  },
-                  {
-                    label: "Profit",
-                    val: `₹${slipProfit}`,
-                    color: "#4cef9a",
-                  },
+                  { label: "Stake",     val: `₹${stakeNum}`,      color: "#fff"    },
+                  { label: "Liability", val: `₹${slipLiability}`, color: "#e05560" },
+                  { label: "Profit",    val: `₹${slipProfit}`,    color: "#4cef9a" },
                 ].map(({ label, val, color }) => (
                   <div
                     key={label}
@@ -1044,8 +1119,7 @@ const MatchDetail = () => {
                   fontWeight: 700,
                   fontSize: 14,
                   padding: 11,
-                  cursor:
-                    overLimit || stakeNum < 100 ? "not-allowed" : "pointer",
+                  cursor: overLimit || stakeNum < 100 ? "not-allowed" : "pointer",
                   fontFamily: "var(--font-rajdhani)",
                   letterSpacing: 0.5,
                   marginBottom: 8,
@@ -1073,6 +1147,7 @@ const MatchDetail = () => {
               </button>
             </>
           ) : (
+            /* ── Confirmation screen ── */
             <div style={{ textAlign: "center", padding: "10px 0" }}>
               <div
                 style={{
@@ -1145,16 +1220,8 @@ const MatchDetail = () => {
                 }}
               >
                 {[
-                  {
-                    label: "Liability",
-                    val: `₹${slipLiability}`,
-                    color: "#e05560",
-                  },
-                  {
-                    label: "Profit",
-                    val: `₹${slipProfit}`,
-                    color: "#4cef9a",
-                  },
+                  { label: "Liability", val: `₹${slipLiability}`, color: "#e05560" },
+                  { label: "Profit",    val: `₹${slipProfit}`,    color: "#4cef9a" },
                 ].map(({ label, val, color }) => (
                   <div
                     key={label}
@@ -1275,8 +1342,7 @@ const MatchDetail = () => {
             Need help?
           </div>
           <p style={{ lineHeight: 1.6 }}>
-            Support available 24/7 for all betting queries and account
-            issues.
+            Support available 24/7 for all betting queries and account issues.
           </p>
         </div>
       )}
