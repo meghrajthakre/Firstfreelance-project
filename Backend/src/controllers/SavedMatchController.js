@@ -81,8 +81,37 @@ const deleteSavedMatchHandler = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/matches/saved/:matchId  — public
+ */
+const getSavedMatchByIdHandler = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const matches = await getSavedMatches();
+    const match = matches.find((m) => m.matchId === matchId);
+
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        message: "Match not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: match,
+    });
+  } catch (err) {
+    console.error("[savedMatchController.getSavedMatchByIdHandler]", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve match.",
+    });
+  }
+};
 module.exports = {
   saveMatchHandler,
   getSavedMatchesHandler,
   deleteSavedMatchHandler,
+  getSavedMatchByIdHandler,
 };

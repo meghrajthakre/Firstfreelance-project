@@ -7,6 +7,9 @@ export const getMe = () => API.get("/auth/me").then((r) => r.data);
 export const getBanner = () => API.get("/banner").then((r) => r.data);
 export const updateBanner = (text) => API.put("/banner", { text }).then((r) => r.data);
 export const getSavedMatches = () => API.get("/matches/saved").then((res) => res.data);
+export const getSavedMatchById = (matchId) =>
+  API.get(`/matches/saved/${matchId}`).then((r) => r.data);
+
 
 export const creditWallet = (userId, amount) =>
   API.post("/wallet/credit", { userId, amount });
