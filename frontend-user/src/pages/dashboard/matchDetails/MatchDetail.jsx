@@ -4,26 +4,45 @@ import { useAuthStore } from "../../../store/authStore";
 
 /* ─── palette ─── */
 const C = {
-  primary: "#1E3A5F",
+  primary:      "#1E3A5F",
   primaryLight: "#2E5080",
-  banner: "#4B75B8",
-  bgMain: "#E8EDF3",
-  inputBg: "#FFFFFF",
-  textDark: "#1A2B3C",
-  border: "#CDD9E5",
-  accent: "#90B4D4",
-  btnBg: "#2B4A7A",
-  lagai: "#4A90D9",
-  khai: "#C94070",
-  noBg: "#2B4A7A",
-  yesBg: "#1A8070",
-  hlRow: "#D4E3F5",
-  pnlGreen: "#1A8070",
-  sectionHdr: "#1E3A5F",
-  tableHdr: "#2B4A7A",
+  banner:       "#4B75B8",
+  bgMain:       "#E8EDF3",
+  inputBg:      "#FFFFFF",
+  textDark:     "#1A2B3C",
+  border:       "#CDD9E5",
+  accent:       "#90B4D4",
+  btnBg:        "#2B4A7A",
+  lagai:        "#4A90D9",
+  khai:         "#C94070",
+  noBg:         "#2B4A7A",
+  yesBg:        "#1A8070",
+  hlRow:        "#D4E3F5",
+  pnlGreen:     "#1A8070",
+  sectionHdr:   "#1E3A5F",
+  tableHdr:     "#2B4A7A",
 };
 
 const EXPOSURE_LIMIT = 10000;
+
+/* ── Indian number formatter (e.g. 300000 → "3,00,000") ── */
+const fmtINR = (n) =>
+  Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+
+/* ── Format odds in Indian bookmaker style (e.g. 1.95 → "95") ── */
+const fmtOdds = (raw) => {
+  if (raw == null) return null;
+  const n = parseFloat(raw);
+  if (isNaN(n) || n <= 0) return null;
+  // If value is already expressed as paise/points (> 10), show as-is
+  // If it's in decimal odds format (e.g. 1.95), convert to paise: (n - 1) * 100
+  if (n <= 10) {
+    // Decimal odds (like 1.05 – 3.0) → convert to Indian paise
+    return String(Math.round((n - 1) * 100));
+  }
+  // Already in paise/points format (e.g. 95, 100, 5)
+  return String(Math.round(n));
+};
 
 /* ══════════════════════════════════════════════════════════════
    BETTING LOGIC HELPERS
@@ -95,22 +114,45 @@ async function placeBetApi(payload) {
 }
 
 /**
- * GET /api/matches/live  →  { success, data: [ normalisedMatch, … ] }
+ * GET /api/matches/live  →  { success, data: [ normalisedLiveMatch, … ] }
  *
- * normalisedMatch fields (set by cricketService.normaliseMatch):
- *   matchId, homeTeam, awayTeam, homeTeamShort, awayTeamShort,
- *   matchType, matchTime, matchNumber, venue, status, favTeam,
- *   odds: { minRate, maxRate },
- *   teamAScores, teamAOver, teamBScores, teamBOver, needRunBall
+ * Strategy (in order):
+ *  1. Exact matchId match  (RapidAPI ID stored in URL)
+ *  2. upcomingMatchId match (your DB ID stored in the live record)
+ *  3. Team-name match       (fallback: same teams = same game)
+ *  4. If only ONE live match exists, return it directly
  */
-async function fetchLiveMatchData(matchId) {
+async function fetchLiveMatchData(matchId, homeTeam, awayTeam) {
   const res  = await fetch("http://localhost:5000/api/matches/live");
-
   const json = await res.json();
-  console.log("[fetchLiveMatchData] API response:", json);
   if (!json.success) throw new Error(json.error || "Failed to fetch live matches");
-  const match = (json.data || []).find((m) => String(m.matchId) === String(matchId));
-  return match ?? null;
+
+  const list = json.data || [];
+  if (list.length === 0) return null;
+
+  // 1. Exact RapidAPI match_id
+  let match = list.find((m) => String(m.matchId) === String(matchId));
+  if (match) return match;
+
+  // 2. upcomingMatchId field (set by backend if you store it)
+  match = list.find((m) => String(m.upcomingMatchId) === String(matchId));
+  if (match) return match;
+
+  // 3. Team name match (compare both orderings)
+  if (homeTeam && awayTeam) {
+    const norm = (s) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const ha = norm(homeTeam), ba = norm(awayTeam);
+    match = list.find((m) => {
+      const mha = norm(m.homeTeam), mba = norm(m.awayTeam);
+      return (mha === ha && mba === ba) || (mha === ba && mba === ha);
+    });
+    if (match) return match;
+  }
+
+  // 4. Only one live match — return it (single-match platforms)
+  if (list.length === 1) return list[0];
+
+  return null;
 }
 
 /* ─── UI atoms ─── */
@@ -175,13 +217,31 @@ const LiveDot = () => (
   </span>
 );
 
+/* ── Batting indicator dot ── */
+const BattingDot = () => (
+  <span style={{ display:"inline-block", width:6, height:6, borderRadius:"50%",
+    background:"#f5c842", marginLeft:5, verticalAlign:"middle",
+    boxShadow:"0 0 4px #f5c842" }} title="Batting" />
+);
+
 /* ══════════════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════════ */
 const MatchDetail = () => {
   const { matchId } = useParams();
-  const user       = useAuthStore((s) => s.user);
-  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const user        = useAuthStore((s) => s.user);
+  const isLoggedIn  = useAuthStore((s) => s.isLoggedIn);
+
+  /*
+   * Team names passed via React Router navigate state:
+   *   navigate(`/match/${m.matchId}`, { state: { homeTeam: m.homeTeam, awayTeam: m.awayTeam } })
+   * Used as fallback when the live matchId differs from the URL matchId.
+   */
+  const locationState = typeof window !== "undefined"
+    ? (window.history.state?.usr ?? {})
+    : {};
+  const stateHomeTeam = locationState.homeTeam ?? null;
+  const stateAwayTeam = locationState.awayTeam ?? null;
 
   /* ── Live data state ── */
   const [liveMatch,   setLiveMatch]   = useState(null);
@@ -193,7 +253,7 @@ const MatchDetail = () => {
     let cancelled = false;
     const load = async () => {
       try {
-        const data = await fetchLiveMatchData(matchId);
+        const data = await fetchLiveMatchData(matchId, stateHomeTeam, stateAwayTeam);
         if (!cancelled) { setLiveMatch(data); setLiveError(null); }
       } catch (err) {
         if (!cancelled) setLiveError(err.message);
@@ -206,32 +266,42 @@ const MatchDetail = () => {
     return () => { cancelled = true; clearInterval(iv); };
   }, [matchId]);
 
-  /* ── Derived display values ──────────────────────────────────
-     All keys are camelCase as returned by normaliseMatch() in
-     cricketService.js:
-       matchId, homeTeam, awayTeam, homeTeamShort, awayTeamShort
-       matchType, matchTime, matchNumber, venue, status, favTeam
-       odds: { minRate, maxRate }
-       teamAScores, teamAOver, teamBScores, teamBOver, needRunBall
-  ────────────────────────────────────────────────────────────── */
+  /* ── Derived display values ── */
   const teamA       = liveMatch?.homeTeam      ?? "Team A";
   const teamB       = liveMatch?.awayTeam      ?? "Team B";
   const teamAShort  = liveMatch?.homeTeamShort ?? "A";
   const teamBShort  = liveMatch?.awayTeamShort ?? "B";
-  const teamAScore  = liveMatch?.teamAScores   ?? "—";
-  const teamAOver   = liveMatch?.teamAOver     ?? null;   // "47.0"
-  const teamBScore  = liveMatch?.teamBScores   ?? "—";
-  const teamBOver   = liveMatch?.teamBOver     ?? null;   // "24.1"
-  const needRunBall = liveMatch?.needRunBall   ?? "";
-  const matchLabel  = liveMatch?.matchNumber   ?? "";     // "105th Match"
-  const matchTime   = liveMatch?.matchTime     ?? "";     // "09:15 AM"
-  const matchType   = liveMatch?.matchType     ?? "";     // "ODI"
-  const favTeam     = liveMatch?.favTeam       ?? null;   // "SCO"
-  const isLive      = liveMatch?.status        === "Live";
+  const teamAId     = liveMatch?.homeTeamId    ?? null;
+  const battingTeam = liveMatch?.battingTeamId ?? null;
 
-  /* minRate → Lagai (back),  maxRate → Khai (lay) */
-  const lagaiOdds = liveMatch?.odds?.minRate != null ? String(liveMatch.odds.minRate) : null;
-  const khaiOdds  = liveMatch?.odds?.maxRate != null ? String(liveMatch.odds.maxRate) : null;
+  /* Scores — show dash only when empty */
+  const teamAScore  = liveMatch?.teamAScores && liveMatch.teamAScores !== ""
+    ? liveMatch.teamAScores : null;
+  const teamAOver   = liveMatch?.teamAOver   && liveMatch.teamAOver !== ""
+    ? liveMatch.teamAOver   : null;
+  const teamBScore  = liveMatch?.teamBScores && liveMatch.teamBScores !== ""
+    ? liveMatch.teamBScores : null;
+  const teamBOver   = liveMatch?.teamBOver   && liveMatch.teamBOver !== ""
+    ? liveMatch.teamBOver   : null;
+
+  const needRunBall = liveMatch?.needRunBall  ?? "";
+  const matchLabel  = liveMatch?.matchNumber  ?? "";
+  const matchTime   = liveMatch?.matchTime    ?? "";
+  const matchType   = liveMatch?.matchType    ?? "";
+  const favTeam     = liveMatch?.favTeam      ?? null;
+  const toss        = liveMatch?.toss         ?? "";
+  const result      = liveMatch?.result       ?? "";
+  const isLive      = liveMatch?.status       === "Live";
+
+  /* Odds in Indian format (rate/paise) */
+  const lagaiOddsRaw = liveMatch?.odds?.minRate ?? null;
+  const khaiOddsRaw  = liveMatch?.odds?.maxRate ?? null;
+  const lagaiOdds    = fmtOdds(lagaiOddsRaw);  // e.g. "95" or null
+  const khaiOdds     = fmtOdds(khaiOddsRaw);   // e.g. "100" or null
+
+  /* ── Batting indicator helper ── */
+  const isBatting = (teamId) =>
+    battingTeam != null && String(battingTeam) === String(teamId);
 
   /* ── Fallback session data ── */
   const mockMatch = {
@@ -284,15 +354,15 @@ const MatchDetail = () => {
     setBetSlip({ runner, type, odds, isSession });
   };
 
-  const stakeNum      = parseFloat(stake) || 0;
-  const slipProfit    = betSlip ? calculateProfit   (betSlip.type, betSlip.odds, stakeNum) : 0;
-  const slipLiability = betSlip ? calculateLiability(betSlip.type, betSlip.odds, stakeNum) : 0;
-  const totalExposure = calculateExposure(bets);
-  const overLimit     = totalExposure + slipLiability > EXPOSURE_LIMIT;
+  const stakeNum       = parseFloat(stake) || 0;
+  const slipProfit     = betSlip ? calculateProfit   (betSlip.type, betSlip.odds, stakeNum) : 0;
+  const slipLiability  = betSlip ? calculateLiability(betSlip.type, betSlip.odds, stakeNum) : 0;
+  const totalExposure  = calculateExposure(bets);
+  const overLimit      = totalExposure + slipLiability > EXPOSURE_LIMIT;
 
   const handlePlaceBet = async () => {
     if (stakeNum < 100) return;
-    if (overLimit) { alert(`Exposure limit ₹${EXPOSURE_LIMIT.toLocaleString()} exceeded!`); return; }
+    if (overLimit) { alert(`Exposure limit ₹${fmtINR(EXPOSURE_LIMIT)} exceeded!`); return; }
     if (!user?._id) { alert("Session expired. Please log in again."); return; }
     try {
       const result = await placeBetApi({
@@ -304,7 +374,9 @@ const MatchDetail = () => {
         id:        result._id || `BET${Date.now().toString().slice(-8)}`,
         runner:    betSlip.runner,
         type:      betSlip.type,
-        betKind:   betSlip.type === "Lagai" ? "BACK" : betSlip.type === "Khai" ? "LAY" : betSlip.type,
+        betKind:   betSlip.type === "Lagai" ? "BACK"
+                 : betSlip.type === "Khai"  ? "LAY"
+                 : betSlip.type,
         odds:      betSlip.odds,
         stake:     stakeNum,
         profit:    slipProfit,
@@ -319,10 +391,24 @@ const MatchDetail = () => {
     }
   };
 
-  /* Market rows use favTeam from API for FAV badge */
+  /* Market rows — use full team names, Indian odds */
   const marketRows = [
-    { short: teamAShort, full: teamA, hl: false, lagaiO: lagaiOdds, khaiO: khaiOdds, isFav: favTeam === teamAShort },
-    { short: teamBShort, full: teamB, hl: true,  lagaiO: lagaiOdds, khaiO: khaiOdds, isFav: favTeam === teamBShort },
+    {
+      teamId: liveMatch?.homeTeamId ?? "A",
+      full:   teamA,
+      hl:     false,
+      lagaiO: lagaiOdds,
+      khaiO:  khaiOdds,
+      isFav:  favTeam === teamAShort,
+    },
+    {
+      teamId: liveMatch?.awayTeamId ?? "B",
+      full:   teamB,
+      hl:     true,
+      lagaiO: lagaiOdds,
+      khaiO:  khaiOdds,
+      isFav:  favTeam === teamBShort,
+    },
   ];
 
   /* ══════════════ RENDER ══════════════ */
@@ -340,13 +426,18 @@ const MatchDetail = () => {
                 fontFamily:"var(--font-rajdhani)", letterSpacing:0.3 }}>
                 {[matchLabel, matchType, matchTime].filter(Boolean).join(" · ")}
               </span>
-              {isLive && <LiveDot />}
+              {isLive ? <LiveDot /> : (
+                <span style={{ fontSize:10, color:"rgba(255,255,255,0.4)",
+                  fontFamily:"var(--font-rajdhani)" }}>
+                  {liveMatch?.status ?? "—"}
+                </span>
+              )}
             </div>
             <button style={{ fontSize:12, fontWeight:700, color:"#fff",
               background:C.primaryLight, border:"none", borderRadius:5,
               padding:"4px 13px", cursor:"pointer",
               fontFamily:"var(--font-rajdhani)", letterSpacing:0.4 }}>
-              Show Full Scorecard
+              Full Scorecard
             </button>
           </div>
 
@@ -359,90 +450,131 @@ const MatchDetail = () => {
               ⚠ {liveError}
             </div>
           ) : (
-            <div style={{ display:"flex", alignItems:"stretch" }}>
+            <>
+              <div style={{ display:"flex", alignItems:"stretch" }}>
 
-              {/* ── Score panel ── */}
-              <div style={{ flex:1, padding:"12px 14px" }}>
+                {/* ── Score panel ── */}
+                <div style={{ flex:1, padding:"12px 14px" }}>
 
-                {/* Team A */}
-                <div style={{ display:"flex", justifyContent:"space-between",
-                  alignItems:"center", marginBottom:8 }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:C.textDark }}>{teamA}</span>
-                  <span style={{ fontSize:13, fontFamily:"var(--font-rajdhani)", color:"#5a7a99" }}>
-                    {teamAScore}
-                    {teamAOver && (
-                      <span style={{ fontSize:11, marginLeft:4, color:C.accent }}>
-                        ({teamAOver} ov)
+                  {/* Team A */}
+                  <div style={{ display:"flex", justifyContent:"space-between",
+                    alignItems:"center", marginBottom:10 }}>
+                    <span style={{ fontSize:13, fontWeight:700, color:C.textDark,
+                      display:"flex", alignItems:"center" }}>
+                      {teamA}
+                      {isBatting(liveMatch?.homeTeamId) && <BattingDot />}
+                    </span>
+                    {teamAScore ? (
+                      <span style={{ textAlign:"right" }}>
+                        <span style={{ fontSize:15, fontWeight:700,
+                          fontFamily:"var(--font-rajdhani)", color:C.textDark }}>
+                          {teamAScore}
+                        </span>
+                        {teamAOver && (
+                          <span style={{ fontSize:11, marginLeft:5, color:C.accent }}>
+                            ({teamAOver} ov)
+                          </span>
+                        )}
                       </span>
+                    ) : (
+                      <span style={{ fontSize:12, color:"#aaa" }}>Yet to bat</span>
                     )}
-                  </span>
-                </div>
+                  </div>
 
-                {/* Team B */}
-                <div style={{ display:"flex", justifyContent:"space-between",
-                  alignItems:"center", marginBottom:8 }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:C.textDark }}>{teamB}</span>
-                  <span style={{ fontSize:13, fontWeight:700,
-                    fontFamily:"var(--font-rajdhani)", color:C.pnlGreen }}>
-                    {teamBScore}
-                    {teamBOver && (
-                      <span style={{ fontSize:11, marginLeft:4, color:C.accent }}>
-                        ({teamBOver} ov)
+                  {/* Team B */}
+                  <div style={{ display:"flex", justifyContent:"space-between",
+                    alignItems:"center", marginBottom:10 }}>
+                    <span style={{ fontSize:13, fontWeight:700, color:C.textDark,
+                      display:"flex", alignItems:"center" }}>
+                      {teamB}
+                      {isBatting(liveMatch?.awayTeamId) && <BattingDot />}
+                    </span>
+                    {teamBScore ? (
+                      <span style={{ textAlign:"right" }}>
+                        <span style={{ fontSize:15, fontWeight:700,
+                          fontFamily:"var(--font-rajdhani)", color:C.pnlGreen }}>
+                          {teamBScore}
+                        </span>
+                        {teamBOver && (
+                          <span style={{ fontSize:11, marginLeft:5, color:C.accent }}>
+                            ({teamBOver} ov)
+                          </span>
+                        )}
                       </span>
+                    ) : (
+                      <span style={{ fontSize:12, color:"#aaa" }}>Yet to bat</span>
                     )}
-                  </span>
-                </div>
-
-                {/* Need-run / target line */}
-                {needRunBall && (
-                  <div style={{ fontSize:10, color:"#f5c842", lineHeight:1.5,
-                    fontFamily:"var(--font-rajdhani)", letterSpacing:0.3 }}>
-                    {needRunBall}
                   </div>
-                )}
 
-                {/* Venue */}
-                {liveMatch?.venue && (
-                  <div style={{ fontSize:9, color:C.accent, marginTop:5, letterSpacing:0.2 }}>
-                    📍 {liveMatch.venue}
-                  </div>
-                )}
-              </div>
-
-              {/* ── Rate badge ── */}
-              <div style={{ minWidth:82, backgroundColor:C.yesBg,
-                display:"flex", flexDirection:"column",
-                alignItems:"center", justifyContent:"center",
-                padding:"10px 6px", gap:6 }}>
-
-                <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)",
-                  fontFamily:"var(--font-rajdhani)", letterSpacing:0.8,
-                  textTransform:"uppercase" }}>Rate</span>
-
-                {/* Lagai */}
-                <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:9, color:"rgba(255,255,255,0.5)",
-                    fontFamily:"var(--font-rajdhani)", marginBottom:1 }}>Lagai</div>
-                  <div style={{ fontSize:18, fontWeight:700, color:"#fff",
-                    fontFamily:"var(--font-rajdhani)", letterSpacing:1 }}>
-                    {lagaiOdds ?? "—"}
-                  </div>
-                </div>
-
-                {/* Khai — only if different from Lagai */}
-                {khaiOdds && khaiOdds !== lagaiOdds && (
-                  <div style={{ textAlign:"center" }}>
-                    <div style={{ fontSize:9, color:"rgba(255,255,255,0.5)",
-                      fontFamily:"var(--font-rajdhani)", marginBottom:1 }}>Khai</div>
-                    <div style={{ fontSize:14, fontWeight:600,
-                      color:"rgba(255,255,255,0.85)",
-                      fontFamily:"var(--font-rajdhani)" }}>
-                      {khaiOdds}
+                  {/* Need-run / target / result */}
+                  {result ? (
+                    <div style={{ fontSize:11, color:"#4cef9a", lineHeight:1.5,
+                      fontFamily:"var(--font-rajdhani)", letterSpacing:0.3,
+                      fontWeight:600 }}>
+                      {result}
                     </div>
+                  ) : needRunBall ? (
+                    <div style={{ fontSize:10, color:"#f5c842", lineHeight:1.5,
+                      fontFamily:"var(--font-rajdhani)", letterSpacing:0.3 }}>
+                      {needRunBall}
+                    </div>
+                  ) : null}
+
+                  {/* Toss */}
+                  {toss && (
+                    <div style={{ fontSize:9, color:C.accent, marginTop:5,
+                      letterSpacing:0.2, lineHeight:1.4 }}>
+                      🪙 {toss}
+                    </div>
+                  )}
+
+                  {/* Venue */}
+                  {liveMatch?.venue && (
+                    <div style={{ fontSize:9, color:C.accent, marginTop:4, letterSpacing:0.2 }}>
+                      📍 {liveMatch.venue}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Rate badge — show only when odds are available ── */}
+                {(lagaiOdds || khaiOdds) && (
+                  <div style={{ minWidth:82, backgroundColor:C.yesBg,
+                    display:"flex", flexDirection:"column",
+                    alignItems:"center", justifyContent:"center",
+                    padding:"10px 6px", gap:6 }}>
+
+                    <span style={{ fontSize:9, color:"rgba(255,255,255,0.5)",
+                      fontFamily:"var(--font-rajdhani)", letterSpacing:0.8,
+                      textTransform:"uppercase" }}>Rate</span>
+
+                    {/* Lagai */}
+                    {lagaiOdds && (
+                      <div style={{ textAlign:"center" }}>
+                        <div style={{ fontSize:9, color:"rgba(255,255,255,0.5)",
+                          fontFamily:"var(--font-rajdhani)", marginBottom:1 }}>Lagai</div>
+                        <div style={{ fontSize:20, fontWeight:700, color:"#fff",
+                          fontFamily:"var(--font-rajdhani)", letterSpacing:1 }}>
+                          {lagaiOdds}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Khai — only when different from Lagai */}
+                    {khaiOdds && khaiOdds !== lagaiOdds && (
+                      <div style={{ textAlign:"center" }}>
+                        <div style={{ fontSize:9, color:"rgba(255,255,255,0.5)",
+                          fontFamily:"var(--font-rajdhani)", marginBottom:1 }}>Khai</div>
+                        <div style={{ fontSize:14, fontWeight:600,
+                          color:"rgba(255,255,255,0.85)",
+                          fontFamily:"var(--font-rajdhani)" }}>
+                          {khaiOdds}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
+            </>
           )}
 
           <div style={{ backgroundColor:C.banner, height:30 }} />
@@ -457,7 +589,7 @@ const MatchDetail = () => {
               fontFamily:"var(--font-rajdhani)", letterSpacing:0.4 }}>TOTAL EXPOSURE</span>
             <span style={{ fontSize:13, fontWeight:700, fontFamily:"var(--font-rajdhani)",
               color: totalExposure > EXPOSURE_LIMIT * 0.8 ? "#e05560" : "#f5c842" }}>
-              ₹{totalExposure.toFixed(2)} / ₹{EXPOSURE_LIMIT.toLocaleString()}
+              ₹{fmtINR(totalExposure)} / ₹{fmtINR(EXPOSURE_LIMIT)}
             </span>
           </div>
         )}
@@ -467,8 +599,8 @@ const MatchDetail = () => {
           <div style={sectionBar()}>
             <span style={{ fontSize:12, fontWeight:700, color:"#fff",
               fontFamily:"var(--font-rajdhani)", letterSpacing:0.4 }}>
-              Market (Min: {mockMatch.marketMinMax.min.toLocaleString()}, Max:{" "}
-              {mockMatch.marketMinMax.max.toLocaleString()})
+              Market (Min: {fmtINR(mockMatch.marketMinMax.min)}, Max:{" "}
+              {fmtINR(mockMatch.marketMinMax.max)})
             </span>
             <span style={{ fontSize:13, fontWeight:700, color:"#4cef9a" }}>
               {bets.filter((b) => !b.isSession).length || 0}
@@ -477,7 +609,7 @@ const MatchDetail = () => {
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead>
               <tr style={tblHdr}>
-                <TH left w="38%">RUNNER</TH>
+                <TH left w="40%">TEAM</TH>
                 <TH>LAGAI</TH>
                 <TH>KHAI</TH>
                 <TH>+/-</TH>
@@ -488,15 +620,18 @@ const MatchDetail = () => {
                 const { profit, loss } = calcRunnerPnlSplit(bets, row.full);
                 const hasActivity = profit > 0 || loss > 0;
                 return (
-                  <tr key={i} style={{ backgroundColor: row.hl ? C.hlRow : "transparent",
-                    opacity: !row.isFav ? 0.62 : 1 }}>
-
+                  <tr key={i} style={{
+                    backgroundColor: row.hl ? C.hlRow : "transparent",
+                    opacity: (!lagaiOdds && !khaiOdds) ? 0.55 : 1,
+                  }}>
                     <TD left bold style={{ color: row.hl ? C.primary : C.textDark }}>
-                      <span style={{ display:"flex", alignItems:"center", gap:5 }}>
-                        {row.short}
+                      <span style={{ display:"flex", alignItems:"center", gap:5,
+                        flexWrap:"wrap" }}>
+                        {/* Full team name, wrap on small screens */}
+                        <span style={{ lineHeight:1.3 }}>{row.full}</span>
                         {row.isFav && (
                           <span style={{ fontSize:9, background:C.yesBg, color:"#fff",
-                            borderRadius:3, padding:"1px 5px",
+                            borderRadius:3, padding:"1px 5px", whiteSpace:"nowrap",
                             fontFamily:"var(--font-rajdhani)", fontWeight:700 }}>
                             FAV
                           </span>
@@ -506,7 +641,7 @@ const MatchDetail = () => {
 
                     <TD>
                       <OddsBtn
-                        color={row.isFav ? C.lagai : C.accent}
+                        color={C.lagai}
                         label={row.lagaiO ?? "—"}
                         disabled={!row.lagaiO}
                         onClick={() => openBet(row.full, "Lagai", row.lagaiO, false)}
@@ -515,7 +650,7 @@ const MatchDetail = () => {
 
                     <TD>
                       <OddsBtn
-                        color={row.isFav ? C.khai : "#9a607a"}
+                        color={C.khai}
                         label={row.khaiO ?? "—"}
                         disabled={!row.khaiO}
                         onClick={() => openBet(row.full, "Khai", row.khaiO, false)}
@@ -528,8 +663,12 @@ const MatchDetail = () => {
                       ) : (
                         <span style={{ display:"flex", flexDirection:"column",
                           alignItems:"center", gap:1 }}>
-                          <span style={{ color:C.pnlGreen, fontWeight:700, fontSize:11 }}>+{profit}</span>
-                          <span style={{ color:"#e05560", fontWeight:700, fontSize:11 }}>-{loss}</span>
+                          <span style={{ color:C.pnlGreen, fontWeight:700, fontSize:11 }}>
+                            +{fmtINR(profit)}
+                          </span>
+                          <span style={{ color:"#e05560", fontWeight:700, fontSize:11 }}>
+                            -{fmtINR(loss)}
+                          </span>
                         </span>
                       )}
                     </TD>
@@ -545,7 +684,7 @@ const MatchDetail = () => {
           <div style={sectionBar()}>
             <span style={{ fontSize:12, fontWeight:700, color:"#fff",
               fontFamily:"var(--font-rajdhani)", letterSpacing:0.4 }}>
-              SESSION (Min: 100, Max: 1,00,000)
+              Session (Min: 100, Max: 1,00,000)
             </span>
             <span style={{ fontSize:13, fontWeight:700, color:"#4cef9a" }}>
               {bets.filter((b) => b.isSession).length || 0}
@@ -588,8 +727,12 @@ const MatchDetail = () => {
                       ) : (
                         <span style={{ display:"flex", flexDirection:"column",
                           alignItems:"center", gap:1 }}>
-                          <span style={{ color:C.pnlGreen, fontWeight:700, fontSize:11 }}>+{profit.toFixed(2)}</span>
-                          <span style={{ color:"#e05560", fontWeight:700, fontSize:11 }}>-{loss.toFixed(2)}</span>
+                          <span style={{ color:C.pnlGreen, fontWeight:700, fontSize:11 }}>
+                            +{profit.toFixed(2)}
+                          </span>
+                          <span style={{ color:"#e05560", fontWeight:700, fontSize:11 }}>
+                            -{loss.toFixed(2)}
+                          </span>
                         </span>
                       )}
                     </TD>
@@ -605,14 +748,14 @@ const MatchDetail = () => {
           <div style={sectionBar()}>
             <span style={{ fontSize:12, fontWeight:700, color:"#fff",
               fontFamily:"var(--font-rajdhani)", letterSpacing:0.4 }}>
-              Market : Match Tie (Min: {mockMatch.matchTieLimit.min}, Max:{" "}
-              {mockMatch.matchTieLimit.max.toLocaleString()})
+              Match Tie (Min: {fmtINR(mockMatch.matchTieLimit.min)}, Max:{" "}
+              {fmtINR(mockMatch.matchTieLimit.max)})
             </span>
           </div>
           <table style={{ width:"100%", borderCollapse:"collapse" }}>
             <thead>
               <tr style={tblHdr}>
-                <TH left w="42%">RUNNER</TH><TH>Lagai</TH><TH>Khai</TH>
+                <TH left w="42%">RUNNER</TH><TH>LAGAI</TH><TH>KHAI</TH>
               </tr>
             </thead>
             <tbody>
@@ -659,14 +802,15 @@ const MatchDetail = () => {
                       <TD>
                         <span style={{ padding:"2px 7px", borderRadius:4, fontSize:10,
                           fontWeight:700, color:"#fff", fontFamily:"var(--font-rajdhani)",
-                          background: b.type === "Lagai" || b.type === "Yes" ? C.lagai : C.khai }}>
+                          background: b.type === "Lagai" || b.type === "Yes"
+                            ? C.lagai : C.khai }}>
                           {b.betKind}
                         </span>
                       </TD>
                       <TD small>{b.odds}</TD>
-                      <TD small>₹{b.stake}</TD>
-                      <TD green small>+₹{b.profit}</TD>
-                      <TD red  small>₹{b.liability}</TD>
+                      <TD small>₹{fmtINR(b.stake)}</TD>
+                      <TD green small>+₹{fmtINR(b.profit)}</TD>
+                      <TD red  small>₹{fmtINR(b.liability)}</TD>
                     </tr>
                   ))}
                 </tbody>
@@ -692,18 +836,23 @@ const MatchDetail = () => {
                 <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                   <span style={{ fontSize:13, fontWeight:700, color:"#fff",
                     fontFamily:"var(--font-rajdhani)", letterSpacing:0.4 }}>
-                    {betSlip.type === "Lagai" ? "BACK" : betSlip.type === "Khai" ? "LAY" : betSlip.type}
+                    {betSlip.type === "Lagai" ? "BACK"
+                    : betSlip.type === "Khai"  ? "LAY"
+                    : betSlip.type}
                     {" · "}{betSlip.runner}
                   </span>
-                  <span style={{ background: ["Lagai","Yes"].includes(betSlip.type) ? C.lagai : C.khai,
+                  <span style={{
+                    background: ["Lagai","Yes"].includes(betSlip.type) ? C.lagai : C.khai,
                     color:"#fff", fontSize:12, fontWeight:700,
-                    padding:"2px 10px", borderRadius:4, fontFamily:"var(--font-rajdhani)" }}>
+                    padding:"2px 10px", borderRadius:4,
+                    fontFamily:"var(--font-rajdhani)" }}>
                     {betSlip.odds}
                   </span>
                   {betSlip.isSession && (
                     <span style={{ background:"rgba(255,255,255,0.13)",
                       color:"rgba(255,255,255,0.75)", fontSize:10,
-                      padding:"2px 8px", borderRadius:4, fontFamily:"var(--font-rajdhani)" }}>
+                      padding:"2px 8px", borderRadius:4,
+                      fontFamily:"var(--font-rajdhani)" }}>
                       SESSION
                     </span>
                   )}
@@ -718,11 +867,12 @@ const MatchDetail = () => {
 
               <input type="number" value={stake}
                 onChange={(e) => setStake(e.target.value)}
-                placeholder="Enter stake (Min: 100)"
+                placeholder="Enter stake (Min: ₹100)"
                 style={{ width:"100%", background:"rgba(255,255,255,0.09)",
                   border:`1px solid ${C.banner}`, borderRadius:8, color:"#fff",
                   fontSize:15, padding:"9px 12px", outline:"none",
-                  marginBottom:10, fontFamily:"var(--font-nunito)", boxSizing:"border-box" }} />
+                  marginBottom:10, fontFamily:"var(--font-nunito)",
+                  boxSizing:"border-box" }} />
 
               <div style={{ display:"flex", gap:6, marginBottom:12 }}>
                 {[100, 500, 1000, 5000].map((v) => (
@@ -731,8 +881,9 @@ const MatchDetail = () => {
                     style={{ flex:1, background:C.primaryLight,
                       border:`1px solid ${C.banner}`, color:C.accent,
                       fontSize:12, fontWeight:600, padding:"5px 0",
-                      borderRadius:5, cursor:"pointer", fontFamily:"var(--font-rajdhani)" }}>
-                    +{v}
+                      borderRadius:5, cursor:"pointer",
+                      fontFamily:"var(--font-rajdhani)" }}>
+                    +{fmtINR(v)}
                   </button>
                 ))}
               </div>
@@ -741,16 +892,16 @@ const MatchDetail = () => {
                 <div style={{ background:"rgba(224,85,96,0.18)", border:"1px solid #e05560",
                   borderRadius:7, padding:"7px 12px", marginBottom:10,
                   fontSize:11, color:"#e05560", fontFamily:"var(--font-rajdhani)" }}>
-                  ⚠ Exposure limit of ₹{EXPOSURE_LIMIT.toLocaleString()} exceeded. Reduce stake.
+                  ⚠ Exposure limit ₹{fmtINR(EXPOSURE_LIMIT)} exceeded. Reduce stake.
                 </div>
               )}
 
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr",
                 gap:8, marginBottom:14 }}>
                 {[
-                  { label:"Stake",     val:`₹${stakeNum}`,      color:"#fff"    },
-                  { label:"Liability", val:`₹${slipLiability}`, color:"#e05560" },
-                  { label:"Profit",    val:`₹${slipProfit}`,    color:"#4cef9a" },
+                  { label:"Stake",     val:`₹${fmtINR(stakeNum)}`,      color:"#fff"    },
+                  { label:"Liability", val:`₹${fmtINR(slipLiability)}`, color:"#e05560" },
+                  { label:"Profit",    val:`₹${fmtINR(slipProfit)}`,    color:"#4cef9a" },
                 ].map(({ label, val, color }) => (
                   <div key={label} style={{ background:"rgba(255,255,255,0.07)",
                     borderRadius:8, padding:"8px 6px", textAlign:"center" }}>
@@ -769,7 +920,8 @@ const MatchDetail = () => {
                   fontSize:14, padding:11,
                   cursor: overLimit || stakeNum < 100 ? "not-allowed" : "pointer",
                   fontFamily:"var(--font-rajdhani)", letterSpacing:0.5, marginBottom:8,
-                  opacity: overLimit || stakeNum < 100 ? 0.55 : 1, transition:"opacity 0.2s" }}>
+                  opacity: overLimit || stakeNum < 100 ? 0.55 : 1,
+                  transition:"opacity 0.2s" }}>
                 Confirm Bet
               </button>
               <button onClick={() => setBetSlip(null)}
@@ -797,13 +949,15 @@ const MatchDetail = () => {
                 STATUS: <span style={{ color:"#4cef9a", fontWeight:700 }}>MATCHED</span>
               </div>
               <div style={{ fontSize:12, color:"rgba(255,255,255,0.55)", marginBottom:14 }}>
-                {betSlip.type === "Lagai" ? "BACK" : betSlip.type === "Khai" ? "LAY" : betSlip.type}
-                {" · "}{betSlip.runner} · ₹{stake} @ {betSlip.odds}
+                {betSlip.type === "Lagai" ? "BACK"
+                : betSlip.type === "Khai"  ? "LAY"
+                : betSlip.type}
+                {" · "}{betSlip.runner} · ₹{fmtINR(stakeNum)} @ {betSlip.odds}
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:14 }}>
                 {[
-                  { label:"Liability", val:`₹${slipLiability}`, color:"#e05560" },
-                  { label:"Profit",    val:`₹${slipProfit}`,    color:"#4cef9a" },
+                  { label:"Liability", val:`₹${fmtINR(slipLiability)}`, color:"#e05560" },
+                  { label:"Profit",    val:`₹${fmtINR(slipProfit)}`,    color:"#4cef9a" },
                 ].map(({ label, val, color }) => (
                   <div key={label} style={{ background:"rgba(255,255,255,0.07)",
                     borderRadius:8, padding:"8px 6px", textAlign:"center" }}>
