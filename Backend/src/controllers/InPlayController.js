@@ -1,4 +1,5 @@
 const { fetchMatches } = require("../services/Matchservice");
+const { fetchLiveMatches } = require("../services/Matchservice");
 
 /**
  * GET /api/matches?filter=today|upcoming
@@ -26,4 +27,14 @@ const getMatches = async (req, res) => {
   }
 };
 
-module.exports = { getMatches };
+
+const getLiveMatches = async (req, res) => {
+  try {
+    const matches = await fetchLiveMatches();
+    res.json({ success: true, data: matches });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+module.exports = { getMatches, getLiveMatches };

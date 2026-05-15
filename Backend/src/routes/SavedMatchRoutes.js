@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { getMatches } = require("../controllers/InPlayController");
+const { getMatches, getLiveMatches } = require("../controllers/InPlayController");
 const {
   saveMatchHandler,
   getSavedMatchesHandler,
@@ -13,6 +13,7 @@ const { superAdminOnly } = require("../middleware/roleMiddleware");
 const router = express.Router();
 
 // ─── Public ──────────────────────────────────────────────────────────────────
+router.get("/live", getLiveMatches);
 router.get("/",      getMatches);
 router.get("/saved", getSavedMatchesHandler);  // ← public
 router.get("/saved/:matchId", getSavedMatchByIdHandler); // ← public

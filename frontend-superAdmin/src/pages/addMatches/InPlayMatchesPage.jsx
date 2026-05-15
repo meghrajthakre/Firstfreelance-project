@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API_BASE ="https://firstfreelance-project.onrender.com"; 
+const API_BASE ="http://localhost:5000"; // Adjust if your backend runs on a different port
 const STORAGE_KEY = "savedMatchIds";
 
 // ─── LocalStorage helpers ─────────────────────────────────────────────────
@@ -40,7 +40,7 @@ export default function InPlayMatchesPage() {
       setLoading(true);
       setError(null);
       try {
-        const res  = await fetch(`${API_BASE}/api/matches?filter=upcoming`, {
+        const res  = await fetch(`${API_BASE}/api/matches`, {
           credentials: "include",
         });
         const json = await res.json();

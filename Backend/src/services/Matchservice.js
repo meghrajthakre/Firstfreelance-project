@@ -131,8 +131,8 @@ const fetchMatches = async (filter) => {
 
 /** Live matches */
 const fetchLiveMatches = async () => {
-  const raw = await callApi("livematch");       // ← adjust if 404
-  return raw.map(normaliseMatch);
+  const raw = await callApi("liveMatches");       // ← adjust if 404
+  return raw
 };
 
 /** Betting line / match info */
