@@ -71,17 +71,7 @@ app.use(express.json({ limit: "10kb" })); // Guard against large payload attacks
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-/** Global limiter — all routes */
-const globalLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX, 10) || 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    message: "Too many requests, please try again later.",
-  },
-});
+
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/", (_req, res) =>
@@ -95,7 +85,6 @@ app.get("/", (_req, res) =>
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use(cookieParser());
-app.use(globalLimiter);
 
 
 
