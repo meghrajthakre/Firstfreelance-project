@@ -1,152 +1,75 @@
 const axios = require("axios");
 
-const RAPIDAPI_KEY  = process.env.RAPIDAPI_KEY;
-const RAPIDAPI_HOST = "cricket-live-line1.p.rapidapi.com";
-const BASE_URL      = `https://${RAPIDAPI_HOST}`;
+// ─── Config ───────────────────────────────────────────────────────────────────
 
-const headers = () => ({
-  "x-rapidapi-key":  RAPIDAPI_KEY,
-  "x-rapidapi-host": RAPIDAPI_HOST,
-});
+// The Odds API — https://the-odds-api.com
+// Get your key at https://the-odds-api.com/#get-access
+const ODDS_API_KEY  = process.env.ODDS_API_KEY;
+const ODDS_API_HOST = "https://api.the-odds-api.com";
+
+/**
+ * All cricket sport keys supported by The Odds API.
+ * Source: https://the-odds-api.com/sports-odds-data/sports-apis.html
+ * Out-of-season keys return 404 and are silently skipped.
+ */
+const CRICKET_SPORT_KEYS = [
+  "cricket_test_match",               // Test Matches
+  "cricket_odi",                      // One Day Internationals
+  "cricket_international_t20",        // International Twenty20
+  "cricket_ipl",                      // IPL
+  "cricket_psl",                      // Pakistan Super League
+  "cricket_big_bash",                 // Big Bash
+  "cricket_t20_blast",                // T20 Blast
+  "cricket_caribbean_premier_league", // Caribbean Premier League
+  "cricket_the_hundred",              // The Hundred
+  "cricket_icc_trophy",               // ICC Champions Trophy
+  "cricket_icc_world_cup",            // ICC World Cup
+  "cricket_icc_world_cup_womens",     // ICC Women's World Cup
+  "cricket_t20_world_cup",            // T20 World Cup
+  "cricket_asia_cup",                 // Asia Cup
+];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const buildCommenceTime = (dateWise, matchTime) => {
-  try {
-    const datePart = dateWise.split(",")[0].trim();
-    const parsed   = new Date(`${datePart} ${matchTime}`);
-    return isNaN(parsed.getTime()) ? null : parsed.toISOString();
-  } catch {
-    return null;
-  }
-};
-
 /**
- * Normalise an upcoming match (no live score fields)
+ * Centralised Odds API caller.
+ * Returns parsed JSON data or throws a descriptive error.
  */
-const normaliseMatch = (raw) => ({
-  matchId:       raw.match_id,
-  sportKey:      "cricket",
-  homeTeam:      raw.team_a,
-  awayTeam:      raw.team_b,
-  commenceTime:  buildCommenceTime(raw.date_wise, raw.match_time),
-  matchTime:     raw.match_time   ?? "",
-  matchType:     raw.match_type   ?? "",
-  series:        raw.series       ?? "",
-  venue:         raw.venue        ?? "",
-  matchNumber:   raw.matchs       ?? "",
-  seriesType:    raw.series_type  ?? "",
-  homeTeamImg:   raw.team_a_img   ?? "",
-  awayTeamImg:   raw.team_b_img   ?? "",
-  homeTeamShort: raw.team_a_short ?? "",
-  awayTeamShort: raw.team_b_short ?? "",
-  status:        raw.match_status ?? "Upcoming",
-  favTeam:       raw.fav_team    || null,
-  odds:
-    raw.min_rate && raw.min_rate !== "0" && raw.min_rate !== "0.00"
-      ? { minRate: parseFloat(raw.min_rate), maxRate: parseFloat(raw.max_rate) }
-      : null,
-});
-
-/**
- * Normalise a LIVE match — includes full scoring data from the live API.
- *
- * Raw live fields (from the API sample):
- *   team_a_scores   "83-4"       team_b_scores  ""
- *   team_a_over     "26.0"       team_b_over    ""
- *   need_run_ball   ""           batting_team   "1128"
- *   toss            "Sri Lanka A Women have won the toss…"
- *   result          ""           current_inning 1
- *   s_ovr / s_min / s_max       (session market range, currently unused)
- *   session         null
- */
-const normaliseLiveMatch = (raw) => {
-  // Build odds — live API uses min_rate / max_rate
-  let odds = null;
-  const minR = parseFloat(raw.min_rate);
-  const maxR = parseFloat(raw.max_rate);
-  if (raw.min_rate && raw.min_rate !== "0" && !isNaN(minR) && minR > 0) {
-    odds = { minRate: minR, maxRate: isNaN(maxR) ? minR : maxR };
+const callOddsApi = async (path, params = {}) => {
+  if (!ODDS_API_KEY) {
+    throw new Error("[cricketService] ODDS_API_KEY is not set in environment");
   }
 
-  return {
-    matchId:       raw.match_id,
-    sportKey:      "cricket",
-    homeTeam:      raw.team_a        ?? "Team A",
-    awayTeam:      raw.team_b        ?? "Team B",
-    homeTeamShort: raw.team_a_short  ?? "",
-    awayTeamShort: raw.team_b_short  ?? "",
-    homeTeamImg:   raw.team_a_img    ?? "",
-    awayTeamImg:   raw.team_b_img    ?? "",
-    matchTime:     raw.match_time    ?? "",
-    matchDate:     raw.match_date    ?? "",
-    matchType:     raw.match_type    ?? "",
-    matchNumber:   raw.matchs        ?? "",
-    series:        raw.series        ?? "",
-    seriesType:    raw.series_type   ?? "",
-    venue:         raw.venue         ?? "",
-    status:        raw.match_status  ?? "Live",
-    favTeam:       raw.fav_team     || null,
-    odds,
-
-    // ── Scoring ──────────────────────────────────────────────
-    teamAScores:   raw.team_a_scores ?? "",   // "83-4"
-    teamAOver:     raw.team_a_over   ?? "",   // "26.0"
-    teamBScores:   raw.team_b_scores ?? "",   // ""
-    teamBOver:     raw.team_b_over   ?? "",   // ""
-    needRunBall:   raw.need_run_ball ?? "",   // target / RRR string
-
-    // Per-inning score detail (array of { over, score } objects)
-    teamAScoreDetail: Array.isArray(raw.team_a_scores_over)
-      ? raw.team_a_scores_over
-      : [],
-    teamBScoreDetail: Array.isArray(raw.team_b_scores_over)
-      ? raw.team_b_scores_over
-      : [],
-
-    // Batting / bowling sides
-    battingTeamId:  raw.batting_team  ?? null,
-    ballingTeamId:  raw.balling_team  ?? null,
-    currentInning:  raw.current_inning ?? 1,
-
-    // Match narrative
-    toss:    raw.toss   ?? "",
-    result:  raw.result ?? "",
-
-    // Session market meta (for future use)
-    sessionOver: raw.s_ovr ?? "",
-    sessionMin:  raw.s_min ?? "0",
-    sessionMax:  raw.s_max ?? "0",
-  };
-};
-
-// ─── Centralised API caller ───────────────────────────────────────────────────
-
-const callApi = async (path, params = {}) => {
-  const url = `${BASE_URL}/${path}`;
+  const url = `${ODDS_API_HOST}${path}`;
   try {
-    const { data } = await axios.get(url, {
-      headers: headers(),
-      params,
+    const response = await axios.get(url, {
+      params: { apiKey: ODDS_API_KEY, ...params },
       timeout: 10_000,
     });
 
-    if (!data.status || !Array.isArray(data.data)) {
-      throw new Error(
-        `Cricket Live Line [${path}]: ${data.msg || "unexpected response"}`
-      );
+    // Log remaining quota from response headers
+    const remaining = response.headers["x-requests-remaining"];
+    const used      = response.headers["x-requests-used"];
+    if (remaining !== undefined) {
+      console.info(`[cricketService] Odds API quota — used: ${used}, remaining: ${remaining}`);
     }
 
-    return data.data;
+    return response.data;
   } catch (err) {
     if (err.response) {
+      // 404 = sport out of season — caller handles this
+      if (err.response.status === 404) {
+        const e = new Error("NOT_FOUND");
+        e.status = 404;
+        throw e;
+      }
       console.error(
         `[cricketService] HTTP ${err.response.status} ← GET ${url}`,
-        "\nResponse:", JSON.stringify(err.response.data ?? {}, null, 2)
+        err.response.data ?? ""
       );
       throw new Error(
-        `Cricket Live Line API returned ${err.response.status} for /${path}. ` +
-        `Check RAPIDAPI_KEY and the endpoint name.`
+        `The Odds API returned ${err.response.status} for ${path}: ` +
+        (err.response.data?.message ?? "unknown error")
       );
     }
     console.error(`[cricketService] Network error calling ${url}:`, err.message);
@@ -154,52 +77,212 @@ const callApi = async (path, params = {}) => {
   }
 };
 
+/**
+ * Fetch all in-season cricket sport keys from the API
+ * instead of relying on a hardcoded list.
+ */
+const fetchActiveCricketSportKeys = async () => {
+  try {
+    const sports = await callOddsApi("/v4/sports", { all: false });
+    if (!Array.isArray(sports)) return CRICKET_SPORT_KEYS;
+    return sports
+      .filter((s) => s.group === "Cricket" && s.active)
+      .map((s) => s.key);
+  } catch {
+    // Fall back to static list if /v4/sports fails
+    return CRICKET_SPORT_KEYS;
+  }
+};
+
+/**
+ * Derive minRate / maxRate from bookmaker h2h prices for a single event.
+ *
+ *   minRate = lowest price across all outcomes/bookmakers  (tightest favourite)
+ *   maxRate = highest price across all outcomes/bookmakers (biggest underdog)
+ *
+ * Shape matches the original { minRate, maxRate } contract so nothing downstream breaks.
+ */
+const extractOdds = (event) => {
+  const prices = [];
+  for (const bookmaker of event.bookmakers ?? []) {
+    for (const market of bookmaker.markets ?? []) {
+      if (market.key !== "h2h") continue;
+      for (const outcome of market.outcomes ?? []) {
+        if (typeof outcome.price === "number") prices.push(outcome.price);
+      }
+    }
+  }
+  if (prices.length === 0) return null;
+  return { minRate: Math.min(...prices), maxRate: Math.max(...prices) };
+};
+
+/**
+ * Normalise a raw Odds API event into the shape the rest of the app expects.
+ */
+const normaliseEvent = (raw, sportKey) => ({
+  matchId:      raw.id,
+  sportKey,
+  homeTeam:     raw.home_team  ?? "",
+  awayTeam:     raw.away_team  ?? "",
+  commenceTime: raw.commence_time ?? null,
+  status:       raw.completed ? "Completed" : (raw.in_play ? "Live" : "Upcoming"),
+  odds:         extractOdds(raw),
+
+  // Scores — populated when the /scores endpoint is used
+  homeScore:    raw.scores?.find((s) => s.name === raw.home_team)?.score ?? null,
+  awayScore:    raw.scores?.find((s) => s.name === raw.away_team)?.score ?? null,
+  completed:    raw.completed ?? false,
+  lastUpdate:   raw.last_update ?? null,
+});
+
 // ─── Exported functions ───────────────────────────────────────────────────────
 
 /**
- * Upcoming matches.
- * filter: "today" | "upcoming" | undefined
+ * Fetch today / upcoming / all matches with h2h odds.
+ *
+ * filter: "today" | "upcoming" | undefined (all)
+ *
+ * The Odds API returns live + upcoming events in a single call per sport.
+ * We filter by commence_time when "today" or "upcoming" is requested.
  */
 const fetchMatches = async (filter) => {
-  const raw = await callApi("upcomingMatches");
+  const sportKeys = await fetchActiveCricketSportKeys();
 
   const now        = new Date();
   const endOfToday = new Date();
   endOfToday.setHours(23, 59, 59, 999);
 
-  let matches = raw;
+  const results = await Promise.allSettled(
+    sportKeys.map((sportKey) =>
+      callOddsApi(`/v4/sports/${sportKey}/odds`, {
+        regions:    "uk,eu",
+        markets:    "h2h",
+        oddsFormat: "decimal",
+        dateFormat: "iso",
+      })
+    )
+  );
 
-  if (filter === "today") {
-    matches = raw.filter((m) => {
-      const t = new Date(buildCommenceTime(m.date_wise, m.match_time));
-      return t >= now && t <= endOfToday;
-    });
-  } else if (filter === "upcoming") {
-    matches = raw.filter((m) => {
-      const t = new Date(buildCommenceTime(m.date_wise, m.match_time));
-      return t > now;
-    });
-  }
+  const matches = [];
 
-  return matches.map(normaliseMatch);
+  results.forEach((result, i) => {
+    if (result.status === "rejected") {
+      if (result.reason?.status !== 404) {
+        console.error(`[cricketService] fetchMatches failed for ${sportKeys[i]}:`, result.reason?.message);
+      }
+      return;
+    }
+
+    const events = Array.isArray(result.value) ? result.value : [];
+
+    for (const event of events) {
+      const t = new Date(event.commence_time);
+
+      if (filter === "today") {
+        if (t < now || t > endOfToday) continue;
+      } else if (filter === "upcoming") {
+        if (t <= now) continue;
+      }
+
+      matches.push(normaliseEvent(event, sportKeys[i]));
+    }
+  });
+
+  // Sort by commence_time ascending
+  return matches.sort((a, b) =>
+    new Date(a.commenceTime) - new Date(b.commenceTime)
+  );
 };
 
 /**
- * Live matches — full scoring data normalised via normaliseLiveMatch.
+ * Fetch currently live (in-play) cricket matches with h2h odds.
+ *
+ * The Odds API marks live events via in_play: true in the events endpoint.
+ * We filter the full odds response to only in-play events.
  */
 const fetchLiveMatches = async () => {
-  const raw = await callApi("liveMatches");
-  return raw.map(normaliseLiveMatch);
+  const sportKeys = await fetchActiveCricketSportKeys();
+
+  const results = await Promise.allSettled(
+    sportKeys.map((sportKey) =>
+      callOddsApi(`/v4/sports/${sportKey}/odds`, {
+        regions:    "uk,eu",
+        markets:    "h2h",
+        oddsFormat: "decimal",
+        dateFormat: "iso",
+      })
+    )
+  );
+
+  const liveMatches = [];
+
+  results.forEach((result, i) => {
+    if (result.status === "rejected") {
+      if (result.reason?.status !== 404) {
+        console.error(`[cricketService] fetchLiveMatches failed for ${sportKeys[i]}:`, result.reason?.message);
+      }
+      return;
+    }
+
+    const events = Array.isArray(result.value) ? result.value : [];
+    const now    = new Date();
+
+    for (const event of events) {
+      // Consider an event live if it has started but isn't completed
+      const started = new Date(event.commence_time) <= now;
+      if (started && !event.completed) {
+        liveMatches.push(normaliseEvent(event, sportKeys[i]));
+      }
+    }
+  });
+
+  return liveMatches;
 };
 
-/** Betting line / match info */
-const fetchMatchLine = async (matchId) => {
-  return callApi("matchinfo", { match_id: matchId });
+/**
+ * Fetch all available odds markets for a specific event (match).
+ *
+ * eventId  — the Odds API event id (matchId from normaliseEvent)
+ * sportKey — e.g. "cricket_ipl"
+ *
+ * Returns raw bookmaker / market data so the caller can render whatever markets they need.
+ */
+const fetchMatchLine = async (eventId, sportKey) => {
+  return callOddsApi(`/v4/sports/${sportKey}/events/${eventId}/odds`, {
+    regions:    "uk,eu",
+    markets:    "h2h,totals",
+    oddsFormat: "decimal",
+    dateFormat: "iso",
+  });
 };
 
-/** Scorecard */
-const fetchScorecard = async (matchId) => {
-  return callApi("matchscorecard", { match_id: matchId });
+/**
+ * Fetch scores / results for a specific sport.
+ *
+ * sportKey      — e.g. "cricket_ipl"
+ * daysFrom      — how many days back to include completed results (default 1, max 3)
+ *
+ * Returns an array of events with scores attached.
+ */
+const fetchScorecard = async (sportKey, daysFrom = 1) => {
+  const events = await callOddsApi(`/v4/sports/${sportKey}/scores`, {
+    daysFrom,
+    dateFormat: "iso",
+  });
+
+  if (!Array.isArray(events)) return [];
+
+  return events.map((e) => ({
+    matchId:      e.id,
+    sportKey,
+    homeTeam:     e.home_team,
+    awayTeam:     e.away_team,
+    commenceTime: e.commence_time,
+    completed:    e.completed,
+    lastUpdate:   e.last_update,
+    homeScore:    e.scores?.find((s) => s.name === e.home_team)?.score ?? null,
+    awayScore:    e.scores?.find((s) => s.name === e.away_team)?.score ?? null,
+  }));
 };
 
 module.exports = {
@@ -207,5 +290,8 @@ module.exports = {
   fetchLiveMatches,
   fetchMatchLine,
   fetchScorecard,
-  normaliseLiveMatch, // exported for unit-testing
+  // Exposed for unit-testing
+  normaliseEvent,
+  extractOdds,
+  fetchActiveCricketSportKeys,
 };
