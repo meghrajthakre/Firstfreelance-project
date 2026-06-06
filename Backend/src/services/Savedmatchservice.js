@@ -5,42 +5,29 @@ const SavedMatch = require("../models/Savedmatch");
  * - Rejects if the match has already started (commenceTime in the past).
  * - Uses the compound unique index to prevent duplicates (catches error code 11000).
  */
+
 const saveMatch = async (userId, matchData) => {
   const { matchId, homeTeam, awayTeam, commenceTime, sportKey, odds } = matchData;
 
-  if (!matchId || !homeTeam || !awayTeam) {
-    const err = new Error("matchId, homeTeam, and awayTeam are required.");
-    err.statusCode = 400;
+  // Check for duplicate
+  const existing = await SavedMatch.findOne({ matchId });
+  if (existing) {
+    const err = new Error("Match already saved.");
+    err.statusCode = 409;
     throw err;
   }
 
-  // Prevent saving past matches
-  if (commenceTime && new Date(commenceTime) < new Date()) {
-    const err = new Error("Cannot save a match that has already started.");
-    err.statusCode = 400;
-    throw err;
-  }
+  const match = await SavedMatch.create({
+    user: userId, 
+    matchId,
+    homeTeam,
+    awayTeam,
+    commenceTime,
+    sportKey,
+    odds,
+  });
 
-  try {
-    const saved = await SavedMatch.create({
-      user: userId,
-      matchId,
-      homeTeam,
-      awayTeam,
-      commenceTime,
-      sportKey,
-      odds,
-    });
-
-    return saved;
-  } catch (err) {
-    if (err.code === 11000) {
-      const dupErr = new Error("Match already saved.");
-      dupErr.statusCode = 409;
-      throw dupErr;
-    }
-    throw err;
-  }
+  return match;
 };
 
 /**
