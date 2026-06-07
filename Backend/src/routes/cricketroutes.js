@@ -6,7 +6,7 @@ const {
   getLiveScores,
   getMatchOdds,
   getLiveSummary,
-} = require("../controllers/cricketController");
+} = require("../../src/controllers/cricketcontroller");
 
 
 
