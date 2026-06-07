@@ -20,7 +20,8 @@ const savedMatchRoutes = require("./src/routes/SavedMatchRoutes");
 const ledgerRoutes = require("./src/modules/ledger/ledger.routes");
 const betRoutes = require("./src/modules/bet/bet.routes");
 const walletRoutes = require("./src/modules/wallet/wallet.routes");
-
+const cricketRoutes = require("./src/routes/cricketroutes");
+  
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
 app.set("trust proxy", 1);
@@ -98,6 +99,7 @@ app.use("/api/matches", savedMatchRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/ledger", ledgerRoutes);
 app.use("/api/bet", betRoutes);
+ app.use("/api/cricket", cricketRoutes);
 
 // ── 404 + global error handler (must be last) ─────────────────────────────────
 app.use(notFound);
