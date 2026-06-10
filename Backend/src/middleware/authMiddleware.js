@@ -43,4 +43,11 @@ const protect = asyncHandler(async (req, _res, next) => {
   next();
 });
 
-module.exports = { protect };
+const allowRoles = (...roles) => (req, res, next) => {
+  if (!roles.includes(req.user.role)) {
+    throw new AppError("Access denied: insufficient role", 403);
+  }
+  next();
+};
+
+module.exports = { protect , allowRoles };

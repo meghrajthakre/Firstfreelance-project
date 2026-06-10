@@ -21,6 +21,7 @@ const ledgerRoutes = require("./src/modules/ledger/ledger.routes");
 const betRoutes = require("./src/modules/bet/bet.routes");
 const walletRoutes = require("./src/modules/wallet/wallet.routes");
 const cricketRoutes = require("./src/routes/cricketroutes");
+const supportRoutes = require("./src/routes/supportRoutes");
   
 // ── App initialisation ────────────────────────────────────────────────────────
 const app = express();
@@ -92,6 +93,7 @@ app.use(cookieParser());
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/superadmin", superAdminRoutes);
+app.use("/api/support", supportRoutes);
 app.use("/api/superadmin/users", superUserRoutes);
 app.use("/api/banner", bannerRoutes);
 app.use("/api/superadmin", superRoutes);
