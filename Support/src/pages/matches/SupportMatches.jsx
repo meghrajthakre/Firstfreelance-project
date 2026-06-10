@@ -42,12 +42,12 @@ function Navbar({ onLogout }) {
           </span>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-6 ">
             {links.map((l) => (
               <button
                 key={l.path}
                 onClick={() => navigate(l.path)}
-                className="text-white/90 text-sm font-medium hover:text-white transition-colors duration-200"
+                className="text-white/90 text-sm font-medium hover:text-white transition-colors duration-200 cursor-pointer"
               >
                 {l.label}
               </button>
