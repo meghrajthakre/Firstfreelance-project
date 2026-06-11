@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import SupportLayout from "./SupportLayout";
 import LoginPage from "@/pages/Login/LoginPage";
 import SupportMatches from "../pages/matches/SupportMatches";
-import SupportLive from "../pages/matches/supportLive";
+import SupportLive from "../pages/matches/SupportLive/supportLive";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
