@@ -1,3 +1,6 @@
 {
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 300,
+    "files.autoSaveWhenNoErrors": false,
     "postman.settings.dotenv-detection-notification-visibility": false
 }
