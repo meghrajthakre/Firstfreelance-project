@@ -62,7 +62,11 @@ export default function RunnerTable() {
                 <td className="py-2 px-4 text-center">
                   <button
                     onClick={() => toggle(i)}
-                    className="text-white text-xs px-2.5 py-0.5 rounded font-medium  whitespace-nowrap"
+                    className="text-white text-[15px] font-bold px-2.5 py-0.5 rounded font-medium whitespace-nowrap 
+                               transition-all duration-200 ease-in-out 
+                               hover:scale-105 hover:shadow-md 
+                               active:scale-95 active:shadow-sm
+                               cursor-pointer"
                     style={{ background: r.status === "open" ? C.openBtn : C.suspendBtn }}
                   >
                     {r.status === "open" ? "Open Rate" : "Suspend Rate"}

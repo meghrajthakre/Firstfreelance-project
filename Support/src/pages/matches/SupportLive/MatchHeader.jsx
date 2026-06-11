@@ -6,13 +6,24 @@ export default function MatchHeader() {
             {/* Start Manual */}
             <div className="flex justify-end mb-3">
                 <button
-                    className="text-white text-lg cursor-pointer font-bold px-6 py-2.5 rounded-md 
-               transition-all duration-200 
-               hover:opacity-90 hover:shadow-md 
-               active:opacity-75 active:scale-[0.98]"
+                    className="group text-white text-lg cursor-pointer font-bold px-6 py-2.5 rounded-lg 
+               transition-all duration-300 ease-out 
+               hover:scale-105 hover:shadow-lg 
+               active:scale-95
+               shadow-md relative overflow-hidden"
                     style={{ background: C.startManual }}
                 >
-                    Start Manual
+                    <span className="relative z-10 flex items-center gap-2">
+                        Start Manual
+                        <svg
+                            className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </span>
                 </button>
             </div>
 
