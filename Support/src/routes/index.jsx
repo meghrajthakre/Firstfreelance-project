@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import SupportLayout from "./SupportLayout";
 import LoginPage from "@/pages/Login/LoginPage";
-import SupportMatches from "@/pages/matches/SupportMatches";
+import SupportMatches from "../pages/matches/SupportMatches";
+import PlayPage from "@/pages/playpage/PlayPage";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -21,8 +23,16 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Public */}
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-      <Route path="/support/matches" element={<ProtectedRoute><SupportMatches /></ProtectedRoute>} />
+
+      {/* Protected — all share the same navbar via SupportLayout */}
+      <Route element={<ProtectedRoute><SupportLayout /></ProtectedRoute>}>
+        <Route path="/support/matches"              element={<SupportMatches />} />
+        <Route path="/support/matches/:matchId/play" element={<PlayPage />} />
+      </Route>
+
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

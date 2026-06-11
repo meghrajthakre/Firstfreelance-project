@@ -22,83 +22,13 @@ function Navbar({ onLogout }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const links = [
-    { label: "HOME", path: "/support/matches" },
-    { label: "Add Match", path: "/support/matches/add" },
-    { label: "Master Page", path: "/support/master" },
-  ];
 
   const handleNavClick = (path) => {
     navigate(path);
     setMenuOpen(false);
   };
 
-  return (
-    <nav style={{ background: COLOR }} className="sticky top-0 z-50 shadow-md">
-      <div className="px-4 sm:px-6 lg:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="text-white text-lg sm:text-xl font-semibold tracking-wide truncate">
-            Nicee7777
-          </span>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            {links.map((l) => (
-              <button
-                key={l.path}
-                onClick={() => navigate(l.path)}
-                className="text-white/90 text-sm font-medium hover:text-white transition-colors duration-200"
-              >
-                {l.label}
-              </button>
-            ))}
-            <button
-              onClick={onLogout}
-              className="text-white text-sm font-medium bg-white/10 hover:bg-white/20 px-4 py-1.5 rounded-lg transition-all duration-200"
-            >
-              LOGOUT
-            </button>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMenuOpen((prev) => !prev)}
-            className="md:hidden text-white p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 focus:outline-none"
-            aria-label="Toggle menu"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {menuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-        </div>
-
-        {/* Mobile Dropdown Menu */}
-        {menuOpen && (
-          <div className="md:hidden mt-3 pt-2 border-t border-white/20 space-y-1">
-            {links.map((l) => (
-              <button
-                key={l.path}
-                onClick={() => handleNavClick(l.path)}
-                className="block w-full text-left text-white/90 text-sm font-medium px-3 py-2.5 hover:bg-white/10 rounded-lg transition-colors duration-200"
-              >
-                {l.label}
-              </button>
-            ))}
-            <button
-              onClick={onLogout}
-              className="block w-full text-left text-white text-sm font-medium px-3 py-2.5 hover:bg-white/10 rounded-lg transition-colors duration-200"
-            >
-              LOGOUT
-            </button>
-          </div>
-        )}
-      </div>
-    </nav>
-  );
+ 
 }
 
 // ── Page Component ──────────────────────────────────────────────────────────
