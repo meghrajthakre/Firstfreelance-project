@@ -38,16 +38,16 @@ function Navbar({ onLogout }) {
       <div className="px-4 sm:px-6 lg:px-8 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <span className="text-white text-lg sm:text-xl font-semibold tracking-wide truncate">
-            {import.meta.env.VITE_APP_NAME || "Support"}
+            Nicee7777
           </span>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6 ">
+          <div className="hidden md:flex items-center gap-6">
             {links.map((l) => (
               <button
                 key={l.path}
                 onClick={() => navigate(l.path)}
-                className="text-white/90 text-sm font-medium hover:text-white transition-colors duration-200 cursor-pointer"
+                className="text-white/90 text-sm font-medium hover:text-white transition-colors duration-200"
               >
                 {l.label}
               </button>
@@ -147,7 +147,7 @@ export default function SupportMatches() {
             className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-center sm:text-left"
             style={{ color: COLOR }}
           >
-            In Play Matches
+            IN PLAY MATCHES
           </h1>
 
           <button
@@ -238,115 +238,169 @@ export default function SupportMatches() {
   );
 }
 
-// ── Enhanced Match Card ──────────────────────────────────────────────────────
+// ── New Match Card (Play, SCORE, SESSION style) ─────────────────────────────
 function MatchCard({ match }) {
   const navigate = useNavigate();
   const upcoming = isUpcoming(match.commenceTime);
 
+  const formatMatchDateTime = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return `${d.getDate()}-${d.toLocaleString("en-IN", { month: "short" })} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  };
+
   return (
-    <div
-      className="group bg-white rounded-2xl border border-gray-200 overflow-hidden
-                 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
-    >
-      {/* Card Header */}
-      <div className="px-4 py-3 flex items-center justify-between gap-2" style={{ background: COLOR }}>
-        <span className="text-white text-xs font-semibold tracking-wide uppercase truncate">
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden
+                    hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
+
+      {/* Header */}
+      <div className="px-4 py-2.5 flex items-center justify-between" style={{ background: "#32759A" }}>
+        <span className="text-white/85 text-xs font-medium tracking-wide uppercase">
           {formatSport(match.sportKey)}
         </span>
-        <span
-          className="shrink-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm"
-          style={
-            upcoming
-              ? { background: "#fef9c3", color: "#92400e" }
-              : { background: "#bbf7d0", color: "#065f46" }
-          }
-        >
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
+          style={upcoming
+            ? { background: "#fef9c3", color: "#92400e" }
+            : { background: "#bbf7d0", color: "#065f46" }}>
           {upcoming ? "UPCOMING" : "LIVE"}
         </span>
       </div>
 
-      {/* Teams Section */}
-      <div className="px-4 py-4 sm:py-5" style={{ background: COLOR_LIGHT }}>
-        <div className="flex items-center justify-between gap-3">
+      {/* Teams */}
+      <div className="px-4 py-3" style={{ background: "#eef6fa" }}>
+        <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-500 mb-0.5 font-medium">Home</p>
-            <p className="text-sm sm:text-base font-bold truncate" style={{ color: COLOR }}>
+            <p className="text-[11px] text-gray-400 mb-0.5">Home</p>
+            <p className="text-sm font-medium truncate" style={{ color: "#32759A" }}>
               {match.homeTeam || "—"}
             </p>
           </div>
-          <div
-            className="shrink-0 w-8 h-8 rounded-full bg-white border border-gray-200
-                        flex items-center justify-center text-xs font-bold text-gray-400 shadow-sm"
-          >
+          <div className="shrink-0 w-8 h-8 rounded-full bg-white border border-gray-200
+                          flex items-center justify-center text-[11px] font-medium text-gray-400">
             VS
           </div>
           <div className="flex-1 min-w-0 text-right">
-            <p className="text-xs text-gray-500 mb-0.5 font-medium">Away</p>
-            <p className="text-sm sm:text-base font-bold truncate" style={{ color: COLOR }}>
+            <p className="text-[11px] text-gray-400 mb-0.5">Away</p>
+            <p className="text-sm font-medium truncate" style={{ color: "#32759A" }}>
               {match.awayTeam || "—"}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Match Details */}
-      <div className="px-4 py-4 flex flex-col gap-3 flex-1">
-        {/* Date & Time Row */}
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <svg className="w-4 h-4 shrink-0" style={{ color: COLOR }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          <span className="font-medium text-gray-700">{formatDate(match.commenceTime)}</span>
-          <span className="text-gray-300">•</span>
-          <span>{formatTime(match.commenceTime)}</span>
-        </div>
+      {/* Date/Time row */}
+      <div className="px-4 py-2.5 flex items-center gap-2 text-xs text-gray-400
+                      border-b border-gray-100">
+        <svg className="w-3.5 h-3.5 shrink-0" style={{ color: "#32759A" }}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <span className="font-medium text-gray-600">{formatMatchDateTime(match.commenceTime)}</span>
 
-        {/* Odds Row */}
         {match.odds && (
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <svg className="w-4 h-4 shrink-0" style={{ color: COLOR }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-              />
+          <>
+            <span className="text-gray-200 mx-1">|</span>
+            <svg className="w-3.5 h-3.5 shrink-0" style={{ color: "#32759A" }}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
-            <span>Odds Range:</span>
-            <span
-              className="font-semibold px-2 py-0.5 rounded text-xs"
-              style={{ background: COLOR_LIGHT, color: COLOR }}
-            >
-              {match.odds.minRate}
+            <span>
+              <span className="font-semibold text-gray-700">{match.odds.minRate}</span>
+              <span className="text-gray-300 mx-1">–</span>
+              <span className="font-semibold text-gray-700">{match.odds.maxRate}</span>
             </span>
-            <span className="text-gray-300">→</span>
-            <span
-              className="font-semibold px-2 py-0.5 rounded text-xs"
-              style={{ background: COLOR_LIGHT, color: COLOR }}
-            >
-              {match.odds.maxRate}
-            </span>
-          </div>
+          </>
         )}
-
-       
       </div>
 
-      {/* Card Footer Button */}
-      <div className="px-4 pb-4 pt-1">
+      {/* Action buttons */}
+      <div className="grid grid-cols-3 gap-2 p-3">
+
+        {/* Play — fills to brand blue */}
         <button
-          onClick={() => navigate(`/support/matches/${match._id}`)}
-          className="w-full text-white text-xs sm:text-sm font-semibold py-2.5 rounded-xl
-                     transition-all duration-200 hover:opacity-90 active:scale-[0.98] shadow-sm"
-          style={{ background: COLOR }}
+          onClick={() => navigate(`/support/matches/${match._id}/play`)}
+          className="group cursor-pointer flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium
+                     border transition-all duration-200
+                     hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-none"
+          style={{
+            background: "#eef6fa", color: "#32759A",
+            borderColor: "#b5d9ec",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "#32759A";
+            e.currentTarget.style.color = "#fff";
+            e.currentTarget.style.borderColor = "#32759A";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "#eef6fa";
+            e.currentTarget.style.color = "#32759A";
+            e.currentTarget.style.borderColor = "#b5d9ec";
+          }}
         >
-          View Match Details →
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          Play
         </button>
+
+        {/* Score — fills to deeper blue */}
+        <button
+          onClick={() => navigate(`/support/matches/${match._id}/score`)}
+          className="group cursor-pointer flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium
+                     border transition-all duration-200
+                     hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-none"
+          style={{
+            background: "#eef6fa", color: "#32759A",
+            borderColor: "#b5d9ec",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "#185FA5";
+            e.currentTarget.style.color = "#fff";
+            e.currentTarget.style.borderColor = "#185FA5";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "#eef6fa";
+            e.currentTarget.style.color = "#32759A";
+            e.currentTarget.style.borderColor = "#b5d9ec";
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          Score
+        </button>
+
+        {/* Session — fills to teal */}
+        <button
+          onClick={() => navigate(`/support/matches/${match._id}/session`)}
+          className="group cursor-pointer flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium
+                     border transition-all duration-200
+                     hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-none"
+          style={{
+            background: "#eef6fa", color: "#32759A",
+            borderColor: "#b5d9ec",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "#0F6E56";
+            e.currentTarget.style.color = "#fff";
+            e.currentTarget.style.borderColor = "#0F6E56";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "#eef6fa";
+            e.currentTarget.style.color = "#32759A";
+            e.currentTarget.style.borderColor = "#b5d9ec";
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 6h16M4 10h16M4 14h8" />
+          </svg>
+          Session
+        </button>
+
       </div>
     </div>
   );
