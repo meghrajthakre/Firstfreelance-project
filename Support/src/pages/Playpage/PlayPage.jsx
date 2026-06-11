@@ -38,8 +38,8 @@ const MANAGEMENT_DATA = [
 
 export default function PlayPage() {
   return (
-    <div className="min-h-screen bg-[#f0f2f5] py-4 px-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen py-4 px-4">
+      <div className="max-w-6xl mx-auto">
 
         {/* Start Manual */}
         <div className="flex justify-end mb-3">
