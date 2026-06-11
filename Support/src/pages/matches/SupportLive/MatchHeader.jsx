@@ -6,10 +6,13 @@ export default function MatchHeader() {
             {/* Start Manual */}
             <div className="flex justify-end mb-3">
                 <button
-                    className="text-white text-sm font-semibold px-5 py-2 rounded"
+                    className="text-white text-lg cursor-pointer font-bold px-6 py-2.5 rounded-md 
+               transition-all duration-200 
+               hover:opacity-90 hover:shadow-md 
+               active:opacity-75 active:scale-[0.98]"
                     style={{ background: C.startManual }}
                 >
-                    Start Manuall
+                    Start Manual
                 </button>
             </div>
 
@@ -19,23 +22,8 @@ export default function MatchHeader() {
             </div>
 
             {/* Ball-by-ball numbers */}
-            <div className="flex justify-center mb-3">
-                <div className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-full px-4 py-2">
-                    <span className="text-xs font-medium text-gray-400 tracking-wider mr-1">BALLS</span>
-                    {MATCH.balls.map((b, i) => (
-                        <div
-                            key={i}
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium"
-                            style={{
-                                background: b > 0 ? "#2c3e6b" : "#d6eaf8",
-                                color: b > 0 ? "#ffffff" : "#1a3a5c",
-                                border: b > 0 ? "none" : "1.5px solid #b8d4e8",
-                            }}
-                        >
-                            {b}
-                        </div>
-                    ))}
-                </div>
+            <div className="flex justify-center gap-4 mb-3 text-gray-600 text-sm">
+                {MATCH.balls.map((b, i) => <span key={i}>{b}</span>)}
             </div>
 
             {/* Match badge */}
