@@ -1,9 +1,9 @@
 export const C = {
   headerBg:     "#4a6fa5",
   laGaiBg:      "#b8d4e8",
-  khaiBg:       "#f0b8c4",
-  laGaiCell:    "#d6eaf8",
-  khaiCell:     "#fce4ea",
+  khaiBg:       "#ffa0b4",
+  laGaiCell:    " #75C2FD",
+  khaiCell:     "#F594AA",
   actionHeader: "#b0bec5",
   suspendBtn:   "#f5a623",
   openBtn:      "#2e7d32",
@@ -20,9 +20,9 @@ export const MATCH = {
   homeTeam:    "Bangladesh",
   awayTeam:    "Australia",
   score:       "AUS 25-3 (6.5)",
-  centerScore: "0",
+  centerScore: "W",
   balls:       [1, 2, 0, 0, 3, 0],
-  subtitle:    "Australia opt to bat",
+  Toss:    "Australia opt to bat",
 };
 
 export const RUNNERS_INIT = [

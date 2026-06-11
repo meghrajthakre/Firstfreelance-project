@@ -14,7 +14,7 @@ export default function SessionTable() {
 
   return (
     <div className="overflow-hidden rounded border border-gray-300 mb-4">
-      <table className="w-full text-sm border-collapse">
+      <table className="w-full text-md border-collapse">
         <thead>
           <tr>
             <th className={`${thBase} text-white`} style={{ background: C.headerBg }}>
@@ -61,13 +61,13 @@ export default function SessionTable() {
           </tr>
 
           {sessions.map((s, i) => (
-            <tr key={s.name} className="border-t border-gray-200 bg-white">
-              <td className="py-2.5 px-4 text-gray-700">{s.name}</td>
+            <tr key={s.name} className="border-t border-gray-200 bg-white font-medium">
+              <td className="py-2.5 px-4 text-gray-700 font-bold">{s.name}</td>
               <td className="py-2 px-3 text-center" style={{ background: C.laGaiCell }}>
                 <div className="font-bold text-gray-900">{s.noRun}</div>
                 <div className="text-xs text-gray-500">{s.noRate}</div>
               </td>
-              <td className="py-2 px-3 text-center" style={{ background: C.khaiCell }}>
+              <td className="py-2 px-3 text-center font-bold" style={{ background: C.khaiCell }}>
                 <div className="font-bold text-gray-900">{s.yesRun}</div>
                 <div className="text-xs text-gray-500">{s.yesRate}</div>
               </td>
