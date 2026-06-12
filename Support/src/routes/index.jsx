@@ -4,6 +4,7 @@ import SupportLayout from "./SupportLayout";
 import LoginPage from "@/pages/Login/LoginPage";
 import SupportMatches from "../pages/matches/SupportMatches";
 import SupportLive from "../pages/matches/SupportLive/supportLive";
+import ManualPage from "../pages/matches/SupportLive/Manual/Manualpage";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -31,6 +32,7 @@ export default function AppRoutes() {
       <Route element={<ProtectedRoute><SupportLayout /></ProtectedRoute>}>
         <Route path="/support/matches" element={<SupportMatches />} />
         <Route path="/support/matches/:matchId/play" element={<SupportLive />} />
+        <Route path="/support/matches/:matchId/manual" element={<ManualPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

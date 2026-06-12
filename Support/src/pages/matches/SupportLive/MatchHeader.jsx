@@ -1,6 +1,10 @@
 import { C, MATCH } from "./constants";
 
 export default function MatchHeader() {
+    const handleManual = () => {
+        window.location.href = `/support/matches/${MATCH.id}/manual`;
+    }
+
     return (
         <>
             {/* Start Manual */}
@@ -13,7 +17,7 @@ export default function MatchHeader() {
                shadow-md relative overflow-hidden"
                     style={{ background: C.startManual }}
                 >
-                    <span className="relative z-10 flex items-center gap-2">
+                    <span onClick={handleManual} className="relative z-10 flex items-center gap-2">
                         Start Manual
                         <svg
                             className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"

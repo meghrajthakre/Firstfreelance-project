@@ -12,7 +12,7 @@ export default function SupportLive() {
         <RunnerTable />
         <SessionTable />
         <Controls />
-        <SessionManagement />
+        <SessionManagement />      
       </div>
     </div>
   );
