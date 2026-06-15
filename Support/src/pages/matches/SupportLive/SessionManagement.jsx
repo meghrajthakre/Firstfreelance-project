@@ -68,7 +68,7 @@ export default function SessionManagement() {
             {sessions.map((s, i) => (
               <tr
                 key={s.name}
-                className="border-b text-[15px] border-gray-100 bg-white hover:bg-gray-50"
+                className="border-b text-[15px] border-gray-100 bg-white hover:bg-gray-200"
               >
                 {/* Session name */}
                 <td className="px-3 py-2 text-gray-800 whitespace-nowrap">{s.name}</td>
