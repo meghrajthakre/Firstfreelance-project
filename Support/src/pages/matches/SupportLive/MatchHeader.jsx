@@ -10,6 +10,7 @@ export default function MatchHeader() {
             {/* Start Manual */}
             <div className="flex justify-end mb-3">
                 <button
+                    onClick={handleManual}
                     className="group text-white text-lg cursor-pointer font-bold px-6 py-2.5 rounded-lg 
                transition-all duration-300 ease-out 
                hover:scale-105 hover:shadow-lg 
@@ -17,7 +18,7 @@ export default function MatchHeader() {
                shadow-md relative overflow-hidden"
                     style={{ background: C.startManual }}
                 >
-                    <span onClick={handleManual} className="relative z-10 flex items-center gap-2">
+                    <span className="relative z-10 flex items-center gap-2">
                         Start Manual
                         <svg
                             className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"

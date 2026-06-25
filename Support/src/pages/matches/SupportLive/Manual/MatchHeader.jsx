@@ -2,18 +2,18 @@ import { C, MATCH } from "./constants";
 
 export default function MatchHeader() {
     const handleManual = () => {
-        window.location.href = `/support/matches/${MATCH.id}/manual`;
+        window.location.href = `/support/matches/${MATCH.id}/play`;
     };
 
     return (
         <>
             <div className="flex justify-end mb-3">
-                <button
+                <button onClick={handleManual}
                     className="group text-white text-lg cursor-pointer font-bold px-6 py-2.5 rounded-lg transition-all duration-300 ease-out hover:scale-105 hover:shadow-lg active:scale-95 shadow-md relative overflow-hidden"
                     style={{ background: C.startManual }}
                 >
-                    <span onClick={handleManual} className="relative z-10 flex items-center gap-2">
-                        Start Manual
+                    <span  className="relative z-10 flex items-center gap-2">
+                        Start automated match
                         <svg
                             className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
                             fill="none"
