@@ -1,78 +1,111 @@
 import { useState } from "react";
-import { C, RUNNERS_INIT } from "./constants";
+import { C } from "./constants";
+
+const RUNNERS_INIT = [
+  { name: "West Indies", lagai: 0.94, khai: 0.96, status: "open" },
+  { name: "Sri Lanka",   lagai: 1.10, khai: 1.12, status: "open" },
+];
 
 export default function RunnerTable() {
-    const [runners, setRunners] = useState(RUNNERS_INIT);
+  const [runners, setRunners] = useState(RUNNERS_INIT);
 
-    const toggle = (i) =>
-        setRunners((p) =>
-            p.map((r, idx) =>
-                idx === i ? { ...r, status: r.status === "open" ? "suspend" : "open" } : r
-            )
-        );
-
-    return (
-        <div className="flex justify-center mb-4">
-            <div className="overflow-hidden rounded border border-gray-300 w-full ">
-                <table className="w-full text-sm border-collapse">
-                    <thead>
-                        <tr>
-                            <th
-                                className="py-2 px-6 text-white text-center font-bold text-xs uppercase tracking-wide w-1/5"
-                                style={{ background: C.headerBg }}
-                            >
-                                RUNNER
-                            </th>
-                            <th
-                                className="py-2 px-4 text-center font-bold text-xs uppercase w-1/5"
-                                style={{ background: C.laGaiBg, color: "#1a3a5c" }}
-                            >
-                                LAGAI
-                            </th>
-                            <th
-                                className="py-2 px-4 text-center font-bold text-xs uppercase w-1/5"
-                                style={{ background: C.khaiBg, color: "#7a1a2e" }}
-                            >
-                                KHAI
-                            </th>
-                            <th
-                                className="py-2 px-4 text-center font-bold text-xs w-1/5"
-                                style={{ background: C.actionHeader, color: "#333" }}
-                            >
-                                Action
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {runners.map((r, i) => (
-                            <tr key={r.name} className="border-t border-gray-200 bg-white">
-                                <td className="py-2 px-6 text-center text-gray-800 font-bold">{r.name}</td>
-                                <td
-                                    className="py-2 px-4 text-center font-bold text-gray-900"
-                                    style={{ background: C.laGaiCell }}
-                                >
-                                    {r.lagai}
-                                </td>
-                                <td
-                                    className="py-2 px-4 text-center font-bold text-gray-900"
-                                    style={{ background: C.khaiCell }}
-                                >
-                                    {r.khai}
-                                </td>
-                                <td className="py-2 px-4 text-center">
-                                    <button
-                                        onClick={() => toggle(i)}
-                                        className="text-white text-[15px] font-bold px-2.5 py-0.5 rounded font-medium whitespace-nowrap transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-md active:scale-95 active:shadow-sm cursor-pointer"
-                                        style={{ background: r.status === "open" ? C.openBtn : C.suspendBtn }}
-                                    >
-                                        {r.status === "open" ? "Open Rate" : "Suspend Rate"}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+  const toggleStatus = (index) => {
+    setRunners((prev) =>
+      prev.map((runner, i) =>
+        i === index
+          ? { ...runner, status: runner.status === "open" ? "suspend" : "open" }
+          : runner
+      )
     );
+  };
+
+  return (
+    <div className="p-4">
+      <h2 className="text-xl font-bold text-gray-800 mb-3 px-2">Rate Management</h2>
+
+      <div className="overflow-hidden rounded border border-gray-300 w-full">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr>
+              <th
+                className="py-2 px-6 text-white text-center font-bold text-xs uppercase tracking-wide w-1/4"
+                style={{ background: C.headerBg }}
+              >
+                RUNNER
+              </th>
+              <th
+                className="py-2 px-4 text-center font-bold text-xs uppercase w-1/4"
+                style={{ background: C.laGaiBg, color: "#1a3a5c" }}
+              >
+                LAGAI
+              </th>
+              <th
+                className="py-2 px-4 text-center font-bold text-xs uppercase w-1/4"
+                style={{ background: C.khaiBg, color: "#7a1a2e" }}
+              >
+                KHAI
+              </th>
+              <th
+                className="py-2 px-4 text-center font-bold text-xs w-1/4"
+                style={{ background: C.actionHeader, color: "#333" }}
+              >
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {runners.map((runner, i) => {
+              const isSuspended = runner.status === "suspend";
+              return (
+                <tr
+                  key={runner.name}
+                  className="border-t border-gray-200 bg-white hover:bg-gray-50 transition-colors duration-150"
+                >
+                  {/* Runner Name */}
+                  <td className="py-2 px-6 text-center text-gray-800 font-bold">
+                    {runner.name}
+                  </td>
+
+                  {/* Lagai */}
+                  <td
+                    className="py-2 px-4 text-center font-bold"
+                    style={{ background: C.laGaiCell }}
+                  >
+                    {isSuspended ? (
+                      <span className="text-red-600 tracking-widest text-xs">SUSPENDED</span>
+                    ) : (
+                      <span className="text-gray-900">{Number(runner.lagai).toFixed(2)}</span>
+                    )}
+                  </td>
+
+                  {/* Khai */}
+                  <td
+                    className="py-2 px-4 text-center font-bold"
+                    style={{ background: C.khaiCell }}
+                  >
+                    {isSuspended ? (
+                      <span className="text-red-600 tracking-widest text-xs">SUSPENDED</span>
+                    ) : (
+                      <span className="text-gray-900">{Number(runner.khai).toFixed(2)}</span>
+                    )}
+                  </td>
+
+                  {/* Action Button */}
+                  <td className="py-2 px-4 text-center">
+                    <button
+                      onClick={() => toggleStatus(i)}
+                      className="text-white font-bold rounded whitespace-nowrap transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-md active:scale-95 active:shadow-sm cursor-pointer min-w-[110px] px-2.5 py-0.5 text-[15px]"
+                      style={{ background: isSuspended ? C.suspendBtn : C.openBtn }}
+                    >
+                      {isSuspended ? "Suspend Rate" : "Open Rate"}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
