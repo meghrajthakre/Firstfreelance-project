@@ -2,12 +2,16 @@ import { useState } from "react";
 import { C } from "./constants";
 
 const RUNNERS_INIT = [
-  { name: "West Indies", lagai: 0.94, khai: 0.96, status: "open" },
-  { name: "Sri Lanka",   lagai: 1.10, khai: 1.12, status: "open" },
+  { name: "West Indies", status: "open" },
+  { name: "Sri Lanka", status: "open" },
 ];
+
+const ODDS_OPTIONS = Array.from({ length: 97 }, (_, i) => i + 1); // 1 to 97
 
 export default function RunnerTable() {
   const [runners, setRunners] = useState(RUNNERS_INIT);
+  const [activeIndex, setActiveIndex] = useState(null);
+  const [activeOdds, setActiveOdds] = useState(1);
 
   const toggleStatus = (index) => {
     setRunners((prev) =>
@@ -17,11 +21,50 @@ export default function RunnerTable() {
           : runner
       )
     );
+    
+    // Reset active selection when suspending/opening
+    if (activeIndex === index) {
+      setActiveIndex(null);
+      setActiveOdds(1);
+    }
   };
+
+  const handleOddsChange = (index, value) => {
+    // If the runner is suspended, don't allow odds change
+    if (runners[index].status === "suspend") return;
+    
+    setActiveIndex(index);
+    setActiveOdds(value);
+  };
+
+  const isMaxOdds = activeOdds >= 97 && activeIndex !== null;
+
+  const getLagai = (i) => {
+    // If selected runner is suspended, show 0
+    if (runners[i].status === "suspend") return 0;
+    if (activeIndex === null) return 0;
+    if (isMaxOdds) return 97; // both teams show 97 at max
+    return activeIndex === i ? activeOdds : 0;
+  };
+
+  const getKhai = (i) => {
+    // If selected runner is suspended, show 0
+    if (runners[i].status === "suspend") return 0;
+    if (activeIndex === null) return 0;
+    if (isMaxOdds) return 97; // both teams show 97 at max
+    return activeIndex === i ? activeOdds + 1 : 0;
+  };
+
+  // Check if any runner is currently selected
+  const hasActiveSelection = activeIndex !== null;
+  const selectedRunner = hasActiveSelection ? runners[activeIndex] : null;
+  const isSelectedSuspended = selectedRunner?.status === "suspend";
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold text-gray-800 mb-3 px-2">Rate Management</h2>
+      <h2 className="text-xl font-bold text-gray-800 mb-3 px-2">
+        Rate Management
+      </h2>
 
       <div className="overflow-hidden rounded border border-gray-300 w-full">
         <table className="w-full text-sm border-collapse">
@@ -53,28 +96,66 @@ export default function RunnerTable() {
               </th>
             </tr>
           </thead>
+
           <tbody>
             {runners.map((runner, i) => {
               const isSuspended = runner.status === "suspend";
+              const isActive = activeIndex === i;
+              const isOtherSelected = hasActiveSelection && !isActive;
+              const isSelectedAndSuspended = isActive && isSuspended;
+              
+              // Check if should show dropdown
+              const showDropdown = !isSuspended && (!hasActiveSelection || isActive);
+
+              let lagai = getLagai(i);
+              let khai = getKhai(i);
+
+              // If selected runner is suspended, show 0 for both
+              if (isSelectedAndSuspended) {
+                lagai = 0;
+                khai = 0;
+              }
+
               return (
                 <tr
                   key={runner.name}
                   className="border-t border-gray-200 bg-white hover:bg-gray-50 transition-colors duration-150"
                 >
-                  {/* Runner Name */}
+                  {/* Runner */}
                   <td className="py-2 px-6 text-center text-gray-800 font-bold">
                     {runner.name}
                   </td>
 
                   {/* Lagai */}
                   <td
-                    className="py-2 px-4 text-center font-bold"
+                    className="py-2 px-4 text-center font-bold relative"
                     style={{ background: C.laGaiCell }}
                   >
                     {isSuspended ? (
-                      <span className="text-red-600 tracking-widest text-xs">SUSPENDED</span>
+                      <span className="text-red-600 tracking-widest text-xs">
+                        SUSPENDED
+                      </span>
+                    ) : isOtherSelected && !isMaxOdds ? (
+                      <span className="text-red-600 tracking-widest text-xs font-bold">
+                        SUSPENDED
+                      </span>
+                    ) : showDropdown ? (
+                      <select
+                        value={isActive ? activeOdds : 1}
+                        onChange={(e) =>
+                          handleOddsChange(i, Number(e.target.value))
+                        }
+                        className="w-full border border-gray-300 bg-white p-1 outline-none rounded text-gray-900 font-bold cursor-pointer"
+                        disabled={isSuspended}
+                      >
+                        {ODDS_OPTIONS.map((num) => (
+                          <option key={num} value={num}>
+                            {num}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
-                      <span className="text-gray-900">{Number(runner.lagai).toFixed(2)}</span>
+                      <span className="text-gray-900 font-bold">{lagai}</span>
                     )}
                   </td>
 
@@ -84,20 +165,28 @@ export default function RunnerTable() {
                     style={{ background: C.khaiCell }}
                   >
                     {isSuspended ? (
-                      <span className="text-red-600 tracking-widest text-xs">SUSPENDED</span>
+                      <span className="text-red-600 tracking-widest text-xs">
+                        SUSPENDED
+                      </span>
+                    ) : isOtherSelected && !isMaxOdds ? (
+                      <span className="text-red-600 tracking-widest text-xs font-bold">
+                        SUSPENDED
+                      </span>
                     ) : (
-                      <span className="text-gray-900">{Number(runner.khai).toFixed(2)}</span>
+                      <span className="text-gray-900">{khai}</span>
                     )}
                   </td>
 
-                  {/* Action Button */}
+                  {/* Action */}
                   <td className="py-2 px-4 text-center">
                     <button
                       onClick={() => toggleStatus(i)}
                       className="text-white font-bold rounded whitespace-nowrap transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-md active:scale-95 active:shadow-sm cursor-pointer min-w-[110px] px-2.5 py-0.5 text-[15px]"
-                      style={{ background: isSuspended ? C.suspendBtn : C.openBtn }}
+                      style={{
+                        background: isSuspended ? C.suspendBtn : C.openBtn,
+                      }}
                     >
-                      {isSuspended ? "Suspend Rate" : "Open Rate"}
+                      {isSuspended ? "Open Rate" : "Suspend Rate"}
                     </button>
                   </td>
                 </tr>
