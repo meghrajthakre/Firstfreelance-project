@@ -13,26 +13,28 @@ export default function RunnerTable() {
   const [activeIndex, setActiveIndex] = useState(null);
   const [activeOdds, setActiveOdds] = useState(1);
 
-  const toggleStatus = (index) => {
+  // Open all rates
+  const openAllRates = () => {
     setRunners((prev) =>
-      prev.map((runner, i) =>
-        i === index
-          ? { ...runner, status: runner.status === "open" ? "suspend" : "open" }
-          : runner
-      )
+      prev.map((runner) => ({ ...runner, status: "open" }))
     );
-    
-    // Reset active selection when suspending/opening
-    if (activeIndex === index) {
-      setActiveIndex(null);
-      setActiveOdds(1);
-    }
+    setActiveIndex(null);
+    setActiveOdds(1);
+  };
+
+  // Suspend all rates
+  const suspendAllRates = () => {
+    setRunners((prev) =>
+      prev.map((runner) => ({ ...runner, status: "suspend" }))
+    );
+    setActiveIndex(null);
+    setActiveOdds(1);
   };
 
   const handleOddsChange = (index, value) => {
     // If the runner is suspended, don't allow odds change
     if (runners[index].status === "suspend") return;
-    
+
     setActiveIndex(index);
     setActiveOdds(value);
   };
@@ -60,6 +62,9 @@ export default function RunnerTable() {
   const selectedRunner = hasActiveSelection ? runners[activeIndex] : null;
   const isSelectedSuspended = selectedRunner?.status === "suspend";
 
+  // Check if all runners are suspended
+  const allSuspended = runners.every(runner => runner.status === "suspend");
+
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold text-gray-800 mb-3 px-2">
@@ -71,28 +76,28 @@ export default function RunnerTable() {
           <thead>
             <tr>
               <th
-                className="py-2 px-6 text-white text-center font-bold text-xs uppercase tracking-wide w-1/4"
+                className="py-2 px-6 text-white text-center font-bold text-xs uppercase tracking-wide"
                 style={{ background: C.headerBg }}
               >
                 RUNNER
               </th>
               <th
-                className="py-2 px-4 text-center font-bold text-xs uppercase w-1/4"
+                className="py-2 px-4 text-center font-bold text-xs uppercase"
                 style={{ background: C.laGaiBg, color: "#1a3a5c" }}
               >
                 LAGAI
               </th>
               <th
-                className="py-2 px-4 text-center font-bold text-xs uppercase w-1/4"
+                className="py-2 px-4 text-center font-bold text-xs uppercase"
                 style={{ background: C.khaiBg, color: "#7a1a2e" }}
               >
                 KHAI
               </th>
               <th
-                className="py-2 px-4 text-center font-bold text-xs w-1/4"
+                className="py-2 px-4 text-center font-bold text-xs uppercase"
                 style={{ background: C.actionHeader, color: "#333" }}
               >
-                Action
+                ACTION
               </th>
             </tr>
           </thead>
@@ -103,7 +108,7 @@ export default function RunnerTable() {
               const isActive = activeIndex === i;
               const isOtherSelected = hasActiveSelection && !isActive;
               const isSelectedAndSuspended = isActive && isSuspended;
-              
+
               // Check if should show dropdown
               const showDropdown = !isSuspended && (!hasActiveSelection || isActive);
 
@@ -177,24 +182,51 @@ export default function RunnerTable() {
                     )}
                   </td>
 
-                  {/* Action */}
-                  <td className="py-2 px-4 text-center">
-                    <button
-                      onClick={() => toggleStatus(i)}
-                      className="text-white font-bold rounded whitespace-nowrap transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-md active:scale-95 active:shadow-sm cursor-pointer min-w-[110px] px-2.5 py-0.5 text-[15px]"
-                      style={{
-                        background: isSuspended ? C.suspendBtn : C.openBtn,
-                      }}
-                    >
-                      {isSuspended ? "Open Rate" : "Suspend Rate"}
-                    </button>
-                  </td>
+                  {/* Action - Individual buttons per row */}
+                  {/* Action - Individual toggle button per row */}
+                {/* Action - Individual toggle buttons per row */}
+<td className="py-2 px-4 text-center">
+  <div className="flex flex-col gap-2">
+    <button
+      onClick={() => {
+        setRunners((prev) =>
+          prev.map((r, idx) =>
+            idx === i ? { ...r, status: "open" } : r
+          )
+        );
+      }}
+      className="text-white font-bold rounded px-3 py-2 transition-all hover:scale-105"
+      style={{ background: C.openBtn }}
+    >
+      Open Rate
+    </button>
+
+    <button
+      onClick={() => {
+        setRunners((prev) =>
+          prev.map((r, idx) =>
+            idx === i ? { ...r, status: "suspend" } : r
+          )
+        );
+        if (activeIndex === i) {
+          setActiveIndex(null);
+          setActiveOdds(1);
+        }
+      }}
+      className="text-white font-bold rounded px-3 py-2 transition-all hover:scale-105"
+      style={{ background: C.suspendBtn }}
+    >
+      Suspend Rate
+    </button>
+  </div>
+</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
     </div>
   );
 }
