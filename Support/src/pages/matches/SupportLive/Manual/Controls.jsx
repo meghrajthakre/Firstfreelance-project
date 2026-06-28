@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { C } from "./constants";
 
-export default function Controls() {
+export default function Controls({ rateDiff, setRateDiff }) {
     const [betLock, setBetLock] = useState("Unlock");
     const [mode, setMode] = useState("Lagai");
     const [sessionLock, setSessionLock] = useState("Unlock");
-    const [rateDiff, setRateDiff] = useState("0.02");
+    const [localRateDiff, setLocalRateDiff] = useState("1");
 
-    const thCls =
-        "text-left px-4 py-2 text-gray-600 font-medium text-sm border-b border-gray-200 bg-white";
+    const handleRateDiffSubmit = () => {
+        setRateDiff(Number(localRateDiff));
+    };
+
+    const thCls = "text-left px-4 py-2 text-gray-600 font-medium text-sm border-b border-gray-200 bg-white";
     const tdCls = "px-4 py-3 bg-white";
 
     return (
@@ -99,17 +102,18 @@ export default function Controls() {
                         <td className={`${tdCls} text-gray-700`}>Match Rate Difference</td>
                         <td className={tdCls}>
                             <select
-                                value={rateDiff}
-                                onChange={(e) => setRateDiff(e.target.value)}
+                                value={localRateDiff}
+                                onChange={(e) => setLocalRateDiff(e.target.value)}
                                 className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-700 focus:outline-none w-28"
                             >
-                                <option>0.02</option>
-                                <option>0.05</option>
-                                <option>0.10</option>
+                                {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+                                    <option key={num} value={num}>{num}</option>
+                                ))}
                             </select>
                         </td>
                         <td className={tdCls}>
                             <button
+                                onClick={handleRateDiffSubmit}
                                 className="text-white text-sm font-semibold px-6 py-1.5 rounded"
                                 style={{ background: C.submitBtn }}
                             >
