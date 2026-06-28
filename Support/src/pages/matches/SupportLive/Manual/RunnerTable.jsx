@@ -182,44 +182,25 @@ export default function RunnerTable() {
                     )}
                   </td>
 
-                  {/* Action - Individual buttons per row */}
-                  {/* Action - Individual toggle button per row */}
-                {/* Action - Individual toggle buttons per row */}
-<td className="py-2 px-4 text-center">
-  <div className="flex flex-col gap-2">
-    <button
-      onClick={() => {
-        setRunners((prev) =>
-          prev.map((r, idx) =>
-            idx === i ? { ...r, status: "open" } : r
-          )
-        );
-      }}
-      className="text-white font-bold rounded px-3 py-2 transition-all hover:scale-105"
-      style={{ background: C.openBtn }}
-    >
-      Open Rate
-    </button>
-
-    <button
-      onClick={() => {
-        setRunners((prev) =>
-          prev.map((r, idx) =>
-            idx === i ? { ...r, status: "suspend" } : r
-          )
-        );
-        if (activeIndex === i) {
-          setActiveIndex(null);
-          setActiveOdds(1);
-        }
-      }}
-      className="text-white font-bold rounded px-3 py-2 transition-all hover:scale-105"
-      style={{ background: C.suspendBtn }}
-    >
-      Suspend Rate
-    </button>
-  </div>
-</td>
+                  <td className="py-2 px-4 text-center">
+                    {i === 0 ? (
+                      <button
+                        onClick={openAllRates}
+                        className="text-white font-bold rounded px-3 py-2 transition-all hover:scale-105"
+                        style={{ background: C.openBtn }}
+                      >
+                        Open Rate
+                      </button>
+                    ) : (
+                      <button
+                        onClick={suspendAllRates}
+                        className="text-white font-bold rounded px-3 py-2 transition-all hover:scale-105"
+                        style={{ background: C.suspendBtn }}
+                      >
+                        Suspend Rate
+                      </button>
+                    )}
+                  </td>
                 </tr>
               );
             })}
