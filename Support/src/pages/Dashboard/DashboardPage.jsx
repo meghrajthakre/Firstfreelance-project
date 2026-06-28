@@ -1,10 +1,10 @@
 import { Bell, LogOut, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-import Button from '@/components/ui/Button';
-import MainLayout from '@/layouts/MainLayout';
-import { useAuth } from '@/hooks/useAuth';
-import { DASHBOARD_STATS } from '@/constants/app';
+import Button from '../../components/ui/Button';
+import MainLayout from '../../layouts/MainLayout';
+import { useAuth } from '../../hooks/useAuth';
+import { DASHBOARD_STATS } from '../../constants/app';
 
 const DashboardPage = () => {
     const { user, logout } = useAuth();

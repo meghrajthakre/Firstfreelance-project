@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { getStoredUser, login as loginService, logout as logoutService } from '@/services/authService';
+import { getStoredUser, login as loginService, logout as logoutService } from '../services/authService';
 
 const AuthContext = createContext(null);
 

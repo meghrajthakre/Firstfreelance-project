@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { logout } from "@/services/api";
+import { logout } from "../../services/api";
 
 const COLOR = "#32759A";
 
 const links = [
-  { label: "HOME",        path: "/support/matches" },
-  { label: "Add Match",   path: "/support/matches/add" },
+  { label: "HOME", path: "/support/matches" },
+  { label: "Add Match", path: "/support/matches/add" },
   { label: "Master Page", path: "/support/master" },
 ];
 
 export default function SupportNavbar() {
-  const navigate     = useNavigate();
-  const location     = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {

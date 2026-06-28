@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiClient, logout } from "@/services/api";
+import { apiClient, logout } from "../../services/api";
 
 const COLOR = "#32759A";
 const COLOR_LIGHT = "#e8f4fa";
@@ -28,7 +28,7 @@ function Navbar({ onLogout }) {
     setMenuOpen(false);
   };
 
- 
+
 }
 
 // ── Page Component ──────────────────────────────────────────────────────────
@@ -176,7 +176,7 @@ function MatchCard({ match }) {
   const formatMatchDateTime = (iso) => {
     if (!iso) return "—";
     const d = new Date(iso);
-    return `${d.getDate()}-${d.toLocaleString("en-IN", { month: "short" })} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    return `${d.getDate()}-${d.toLocaleString("en-IN", { month: "short" })} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   };
 
   return (

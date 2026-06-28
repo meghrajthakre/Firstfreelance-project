@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
 import SupportLayout from "./SupportLayout";
-import LoginPage from "@/pages/Login/LoginPage";
+import LoginPage from "../pages/Login/LoginPage";
 import SupportMatches from "../pages/matches/SupportMatches";
 import SupportLive from "../pages/matches/SupportLive/supportLive";
 import ManualPage from "../pages/matches/SupportLive/Manual/Manualpage";

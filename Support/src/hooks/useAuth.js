@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { getStoredUser, isAuthenticated } from "@/services/api";
+import { getStoredUser, isAuthenticated } from "../services/api";
 
 export const useAuth = () => {
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

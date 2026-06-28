@@ -1,6 +1,6 @@
 import { MoonStar, Sun } from 'lucide-react';
 
-import Button from '@/components/ui/Button';
+import Button from '../ui/Button';
 
 const ThemeToggle = ({ isDark, onToggle }) => {
     return (
