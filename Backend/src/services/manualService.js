@@ -1,6 +1,7 @@
 "use strict";
 
-const ManualRunner = require("../models/ManualRunner");
+const ManualRunner = require("../models/ManualModel/ManualRunner");
+const ManualSettings = require('../models/ManualModel/ManualSettings');
 
 async function saveRunner(matchId, runner) {
     // Upsert runner document by matchId + runnerId
@@ -24,4 +25,47 @@ async function getState(matchId) {
     return rows || [];
 }
 
-module.exports = { saveRunner, getState };
+
+
+async function getSettings(matchId) {
+    let settings = await ManualSettings.findOne({ matchId });
+    if (!settings) {
+        // Create default settings if not exists
+        settings = await ManualSettings.create({
+            matchId,
+            rateDiff: 1,
+            betLock: false,
+            sessionLock: false,
+            mode: 'Lagai',
+            marketStatus: 'OPEN'
+        });
+    }
+    return settings;
+}
+
+async function updateSettings(data) {
+    const { matchId, rateDiff, betLock, sessionLock, mode, marketStatus } = data;
+    
+    let settings = await ManualSettings.findOne({ matchId });
+    
+    if (!settings) {
+        settings = new ManualSettings({ matchId });
+    }
+    
+    if (rateDiff !== undefined) settings.rateDiff = rateDiff;
+    if (betLock !== undefined) settings.betLock = betLock;
+    if (sessionLock !== undefined) settings.sessionLock = sessionLock;
+    if (mode !== undefined) settings.mode = mode;
+    if (marketStatus !== undefined) settings.marketStatus = marketStatus;
+    
+    await settings.save();
+    return settings;
+}
+
+module.exports = { 
+    saveRunner, 
+    getState, 
+    getSettings, 
+    updateSettings 
+};
+

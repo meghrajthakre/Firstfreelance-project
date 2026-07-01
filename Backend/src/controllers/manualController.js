@@ -90,4 +90,41 @@ const state = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, data: rows });
 });
 
-module.exports = { updateRunner, events, state };
+// GET /api/manual/settings/:matchId
+const getSettings = asyncHandler(async (req, res) => {
+    const matchId = req.params.matchId;
+    if (!matchId) throw new AppError('matchId required', 400);
+
+    const settings = await manualService.getSettings(matchId);
+    res.status(200).json({ success: true, data: settings });
+});
+
+// POST /api/manual/settings/update
+const updateSettings = asyncHandler(async (req, res) => {
+    const { matchId, rateDiff, betLock, sessionLock, mode, marketStatus } = req.body;
+
+    if (!matchId) {
+        throw new AppError('matchId is required', 400);
+    }
+
+    const updated = await manualService.updateSettings({
+        matchId,
+        rateDiff,
+        betLock,
+        sessionLock,
+        mode,
+        marketStatus
+    });
+
+    // Broadcast settings update via SSE
+    const event = {
+        type: 'SETTINGS_UPDATED',
+        payload: updated
+    };
+    sse.broadcast(matchId, event);
+
+    res.status(200).json({ success: true, data: updated });
+});
+
+// Export the new functions
+module.exports = { updateRunner, events, state, getSettings, updateSettings };

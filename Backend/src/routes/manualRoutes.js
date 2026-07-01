@@ -1,16 +1,27 @@
 "use strict";
 
-const { Router } = require('express');
-const { protect, allowRoles } = require('../middleware/authMiddleware');
-const { updateRunner, events, state } = require('../controllers/manualController');
+const { Router } = require("express");
+const {
+    updateRunner,
+    updateSettings,
+    events,
+    state,
+    getSettings,  
+} = require("../controllers/manualController");
 
 const router = Router();
 
-// Public endpoints
-router.get('/events', events); // SSE endpoint (public)
-router.get('/state/:matchId', state); // current manual state for match (public)
+// Initial State
+router.get("/state/:matchId", state);
 
-// Support-only update endpoint
-router.post('/update', updateRunner);
+// Settings
+router.get("/settings/:matchId", getSettings);  // Add this
+router.post("/settings/update", updateSettings);
+
+// SSE
+router.get("/events", events);
+
+// Update Runner Odds
+router.post("/update", updateRunner);
 
 module.exports = router;
