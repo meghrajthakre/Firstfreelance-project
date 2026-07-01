@@ -28,7 +28,6 @@ function Navbar({ onLogout }) {
     setMenuOpen(false);
   };
 
-
 }
 
 // ── Page Component ──────────────────────────────────────────────────────────
@@ -47,6 +46,7 @@ export default function SupportMatches() {
     try {
       const { data } = await apiClient.get("/matches/saved");
       setMatches(Array.isArray(data.data) ? data.data : []);
+      console.log(data.data);
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Failed to fetch matches");
     } finally {
@@ -159,7 +159,7 @@ export default function SupportMatches() {
         {!loading && !error && matches.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {matches.map((match) => (
-              <MatchCard key={match._id} match={match} />
+              <MatchCard key={match.matchId} match={match} />
             ))}
           </div>
         )}
@@ -250,7 +250,7 @@ function MatchCard({ match }) {
 
         {/* Play — fills to brand blue */}
         <button
-          onClick={() => navigate(`/support/matches/${match._id}/play`)}
+          onClick={() => navigate(`/support/matches/${match.matchId}/play`)}
           className="group cursor-pointer flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium
                      border transition-all duration-200
                      hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-none"
@@ -277,7 +277,7 @@ function MatchCard({ match }) {
 
         {/* Score — fills to deeper blue */}
         <button
-          onClick={() => navigate(`/support/matches/${match._id}/score`)}
+          onClick={() => navigate(`/support/matches/${match.matchId}/score`)}
           className="group cursor-pointer flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium
                      border transition-all duration-200
                      hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-none"
@@ -305,7 +305,7 @@ function MatchCard({ match }) {
 
         {/* Session — fills to teal */}
         <button
-          onClick={() => navigate(`/support/matches/${match._id}/session`)}
+          onClick={() => navigate(`/support/matches/${match.matchId}/session`)}
           className="group cursor-pointer flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium
                      border transition-all duration-200
                      hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-none"

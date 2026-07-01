@@ -1,39 +1,78 @@
 import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { apiClient } from "../../../../services/api";
 import { C } from "./constants";
 
 const ODDS_OPTIONS = Array.from({ length: 98 }, (_, i) => i); // 0 to 97
 
+const updateRunnerAPI = async (matchId, runnerId, runnerName, lagai, khai, status = "open") => {
+  try {
+    const { data } = await apiClient.post("/manual/update", {
+      matchId,
+      runnerId,
+      runnerName,
+      lagai,
+      khai,
+      status,
+    });
+    console.log("Runner updated:", data);
+  } catch (err) {
+    console.error("Failed to update runner:", err?.response?.data || err.message);
+  }
+};
+
 export default function RunnerTable({ rateDiff = 1 }) {
+  const { matchId } = useParams();
+
   const [runners, setRunners] = useState([
-    { name: "West Indies", odds: 0 },
-    { name: "Sri Lanka", odds: 0 },
+    { id: "runner_1", name: "West Indies", odds: 0 },
+    { id: "runner_2", name: "Sri Lanka", odds: 0 },
   ]);
   const [activeIndex, setActiveIndex] = useState(null);
 
+  if (!matchId) {
+    return (
+      <div className="py-8 text-center text-red-600 font-semibold">
+        No matchId found in the URL.
+      </div>
+    );
+  }
+
   const openAllRates = () => {
-    setRunners((prev) => prev.map((r) => ({ ...r, odds: 0 })));
+    const updated = runners.map((r) => ({ ...r, odds: 0 }));
+    setRunners(updated);
     setActiveIndex(null);
+    updated.forEach((r) => updateRunnerAPI(matchId, r.id, r.name, 0, 0, "open"));
   };
 
   const suspendAllRates = () => {
+    const updated = runners.map((r) => ({ ...r, odds: 0 }));
+    setRunners(updated);
     setActiveIndex(null);
-    setRunners((prev) => prev.map((r) => ({ ...r, odds: 0 })));
+    updated.forEach((r) => updateRunnerAPI(matchId, r.id, r.name, 0, 0, "suspend"));
   };
 
   const handleOddsChange = (index, value) => {
     const num = Number(value);
     setActiveIndex(index);
 
+    let updated;
     if (num === 97) {
-      setRunners((prev) => prev.map((r) => ({ ...r, odds: 97 })));
+      updated = runners.map((r) => ({ ...r, odds: 97 }));
     } else {
-      setRunners((prev) =>
-        prev.map((r, i) => ({
-          ...r,
-          odds: i === index ? num : 0,
-        }))
-      );
+      updated = runners.map((r, i) => ({
+        ...r,
+        odds: i === index ? num : 0,
+      }));
     }
+
+    setRunners(updated);
+
+    updated.forEach((r) => {
+      const lagai = r.odds;
+      const khai = r.odds === 0 || r.odds === 97 ? 0 : r.odds + rateDiff;
+      updateRunnerAPI(matchId, r.id, r.name, lagai, khai, "open");
+    });
   };
 
   return (
@@ -71,14 +110,14 @@ export default function RunnerTable({ rateDiff = 1 }) {
 
           <tbody>
             {runners.map((runner, i) => {
-              const lagai = runner.odds;
-              const khai = runner.odds === 0 || runner.odds === 97
-                ? 0
-                : runner.odds + rateDiff;
+              const khai =
+                runner.odds === 0 || runner.odds === 97
+                  ? 0
+                  : runner.odds + rateDiff;
 
               return (
                 <tr
-                  key={runner.name}
+                  key={runner.id}
                   className="border-t border-gray-200 bg-white hover:bg-gray-50 transition-colors duration-150"
                 >
                   <td className="py-2 px-6 text-center text-gray-800 font-bold">

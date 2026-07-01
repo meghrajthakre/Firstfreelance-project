@@ -1,0 +1,93 @@
+"use strict";
+
+const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/AppError");
+const manualService = require("../services/manualService");
+const engine = require("../ManualEngine/engine");
+const sse = require("../ManualEngine/sseServer");
+
+// POST /api/manual/update
+const updateRunner = asyncHandler(async (req, res) => {
+    const { matchId, runnerId, runnerName, lagai, khai, status } = req.body || {};
+
+    if (!matchId || !runnerId) {
+        throw new AppError("matchId and runnerId are required", 400);
+    }
+
+    const runnerObj = {
+        matchId,
+        runnerId,
+        runnerName: runnerName ?? '',
+        lagai: typeof lagai === 'number' ? lagai : Number(lagai) || 0,
+        khai: typeof khai === 'number' ? khai : Number(khai) || 0,
+        status: status ?? 'open',
+    };
+
+    // Persist to DB
+    const saved = await manualService.saveRunner(matchId, runnerObj);
+
+    // Update in-memory cache
+    engine.updateRunnerInCache(matchId, {
+        runnerId: saved.runnerId,
+        runnerName: saved.runnerName,
+        lagai: saved.lagai,
+        khai: saved.khai,
+        status: saved.status,
+        updatedAt: saved.updatedAt,
+    });
+
+    // Broadcast via SSE
+    const event = {
+        type: 'RUNNER_UPDATED',
+        payload: {
+            matchId: saved.matchId,
+            runnerId: saved.runnerId,
+            runnerName: saved.runnerName,
+            lagai: saved.lagai,
+            khai: saved.khai,
+            status: saved.status,
+        },
+    };
+    sse.broadcast(saved.matchId, event);
+
+    res.status(200).json({ success: true, data: event.payload });
+});
+
+// GET /api/manual/events?matchId=...
+const events = asyncHandler(async (req, res) => {
+    const matchId = req.query.matchId || 'all';
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders && res.flushHeaders();
+
+    // Register client
+    sse.addClient(res, matchId);
+
+    // Remove client on close
+    req.on('close', () => {
+        sse.removeClient(res, matchId);
+    });
+
+    // Keep the connection open (don't end response)
+});
+
+// GET /api/manual/state/:matchId
+const state = asyncHandler(async (req, res) => {
+    const matchId = req.params.matchId;
+    if (!matchId) throw new AppError('matchId required', 400);
+
+    // Try cache first, if empty load from DB and seed cache
+    const cached = engine.getState(matchId);
+    if (cached && cached.length > 0) {
+        return res.status(200).json({ success: true, data: cached });
+    }
+
+    const rows = await manualService.getState(matchId);
+    engine.setInitialState(matchId, rows);
+    res.status(200).json({ success: true, data: rows });
+});
+
+module.exports = { updateRunner, events, state };

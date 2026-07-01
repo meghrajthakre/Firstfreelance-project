@@ -71,3 +71,10 @@ export const getLiveScores = (sportKey, daysFrom = 1) =>
  */
 export const getMatchOdds = (sportKey, eventId) =>
   API.get(`/cricket/live/${sportKey}/match/${eventId}/odds`).then((r) => r.data);
+
+
+// In your userService.js file, add this function:
+
+export const getManualState = (matchId) => {
+  return API.get(`/manual/state/${matchId}`).then((r) => r.data);
+};

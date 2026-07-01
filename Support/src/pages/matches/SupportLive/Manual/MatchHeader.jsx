@@ -1,8 +1,12 @@
+import { useNavigate, useParams } from "react-router-dom";
 import { C, MATCH } from "./constants";
 
 export default function MatchHeader() {
+    const navigate = useNavigate();
+    const { matchId } = useParams();
+
     const handleManual = () => {
-        window.location.href = `/support/matches/${MATCH.id}/play`;
+        navigate(`/support/matches/${matchId}/play`);
     };
 
     return (
